@@ -14,10 +14,10 @@ ROOT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_PATH not in sys.path:
     sys.path.insert(0, ROOT_PATH)
 
-from cli.clients.websocket_client import FinnhubWebSocketClient
 from cli.commands.handler import execute_command
 from cli.ui import create_layout, create_stock_table
 from cli.utils import load_symbols_from_config, save_symbols_to_config
+from clients.websocket_client import FinnhubWebSocketClient
 
 
 class StockTickerApp:
