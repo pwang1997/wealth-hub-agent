@@ -19,6 +19,12 @@ dependencies = [
   "openai",
   "httpx",
   "mcp",
+  "finnhub-python>=2.4.26",
+  "prompt-toolkit>=3.0.52",
+  "python-dotenv>=1.2.1",
+  "pyyaml>=6.0.3",
+  "rich>=14.2.0",
+  "websocket-client>=1.9.0",
 ]
 
 [project.optional-dependencies]
