@@ -151,7 +151,10 @@ class StockTickerApp:
 
 
 if __name__ == '__main__':
-    API_KEY = 'd51e5hhr01qhn003ensgd51e5hhr01qhn003ent0'
+    import dotenv
+    
+    dotenv.load_dotenv()
+    API_KEY = dotenv.get_key('.env', 'FINNHUB_API_KEY') or 'your_finnhub_api_key_here'
 
     if API_KEY == 'your_finnhub_api_key_here':
         print('⚠️  Please set your Finnhub API key in the code')

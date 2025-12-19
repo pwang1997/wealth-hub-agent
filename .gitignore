@@ -11,4 +11,4 @@ wheels/
 
 .env
 
-stock_config.json
+stock_config.*
