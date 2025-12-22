@@ -25,7 +25,7 @@ class AlphaVantageNewsTool:
         alpha_vantage_api_key = os.getenv("ALPHAVANTAGE_API_KEY")
         if not alpha_vantage_api_key:
             raise ValueError(
-                "Alpha Vantage API key not provided! Please set ALPHAADVANTAGE_API_KEY environment variable."
+                "Alpha Vantage API key not provided! Please set ALPHAVANTAGE_API_KEY environment variable."
             )
         self.client = AlphaVantageRestClient(alpha_vantage_api_key)
 
@@ -110,7 +110,7 @@ class AlphaVantageNewsTool:
             feed = data.get("feed", [])
         except Exception as exc:
             logger.error(f"Alpha Vantage API error: {exc}")
-            raise RuntimeError(f"Alpha Vantage API error: {exc}")
+            raise RuntimeError(f"Alpha Vantage API error: {exc}") from exc
 
         filtered_feed = []
         for article in feed:
@@ -140,11 +140,11 @@ class AlphaVantageNewsTool:
         try:
             feed = self._fetch_news(symbols=tickers, limit=limit)
             if not feed:
-                print("⚠️ Alpha Vantage API returned empty feed")
+                logger.warning("⚠️ Alpha Vantage API returned empty feed")
                 return []
 
             ticker_label = ", ".join(tickers) if tickers else "symbol(s)"
-            print(f"✅ Fetched {len(feed)} news articles about {ticker_label} from Alpha Vantage")
+            logger.info(f"✅ Fetched {len(feed)} news articles about {ticker_label} from Alpha Vantage")
             return feed
         except ValueError as exc:
             logger.error(exc)
@@ -162,30 +162,17 @@ class AlphaVantageNewsTool:
             symbols (str | Sequence[str]): Stock symbols to filter news articles.
             topics (str): Comma-separated topics to filter news articles.
         """
-        print(f"Searching Alpha Vantage news: symbols={symbols}, topics={topics}")
-        today_date = datetime.now().strftime("%Y-%m-%d")
-        time_from = None
-        time_to = None
+        logger.debug(f"Searching Alpha Vantage news: symbols={symbols}, topics={topics}")
+        today_datetime = datetime.now()
+        today_date = today_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        time_to = today_datetime.strftime("%Y%m%dT%H%M")
+        time_from_datetime = today_datetime - timedelta(days=30)
+        time_from = time_from_datetime.strftime("%Y%m%dT%H%M")
 
-        if today_date:
-            try:
-                today_datetime = (
-                    datetime.strptime(today_date, "%Y-%m-%d %H:%M:%S")
-                    if " " in today_date
-                    else datetime.strptime(today_date, "%Y-%m-%d")
-                )
-                time_to = today_datetime.strftime("%Y%m%dT%H%M")
-                time_from_datetime = today_datetime - timedelta(days=30)
-                time_from = time_from_datetime.strftime("%Y%m%dT%H%M")
-                print(
-                    f"Filtering articles published before: {today_date} "
-                    f"(API format: time_from={time_from}, time_to={time_to})"
-                )
-            except Exception as e:
-                logger.error(f"Failed to parse TODAY_DATE: {e}")
-                print("⚠️ Failed to parse TODAY_DATE, returning all results without date filtering")
-        else:
-            print("⚠️ TODAY_DATE not set, returning all results without date filtering")
+        logger.debug(
+            f"Filtering articles published before: {today_date} "
+            f"(API format: time_from={time_from}, time_to={time_to})"
+        )
 
         all_articles = self._fetch_news(
             symbols=symbols,
@@ -195,8 +182,10 @@ class AlphaVantageNewsTool:
             sort="LATEST",
             limit=limit,
         )
-        print(f"Found {len(all_articles)} articles after API filtering")
+        logger.debug(f"Found {len(all_articles)} articles after API filtering")
         return all_articles
+
+alpha_vantage_tool = AlphaVantageNewsTool()
 
 mcp = FastMCP("NewsSearch")
 
@@ -228,21 +217,20 @@ def get_market_news(symbols: Optional[str] = None, limit: int = 10)->list[NewsSe
     """
 
     if not symbols:
-        print("⚠️ Please provide at least one comma-separated symbol.")
+        logger.warning("⚠️ Please provide at least one comma-separated symbol.")
         return []
 
     normalized_symbols = [
         ticker.strip().upper() for ticker in symbols.split(",") if ticker.strip()
     ]
     if not normalized_symbols:
-        print("⚠️ Symbol list must contain at least one valid ticker.")
+        logger.warning("⚠️ Symbol list must contain at least one valid ticker.")
         return []
 
     try:
-        tool = AlphaVantageNewsTool()
-        results = tool.fetch_news(symbols=normalized_symbols, limit=limit)
+        results = alpha_vantage_tool.fetch_news(symbols=normalized_symbols, limit=limit)
         if not results:
-            print(f"⚠️ No news articles found for symbols: {', '.join(normalized_symbols)}")
+            logger.warning(f"⚠️ No news articles found for symbols: {', '.join(normalized_symbols)}")
             return []
 
         formatted_results = []
@@ -288,7 +276,8 @@ def get_market_news(symbols: Optional[str] = None, limit: int = 10)->list[NewsSe
 
         if not formatted_results:
             joined_symbols = ", ".join(normalized_symbols)
-            return f"⚠️ No news articles found matching criteria '{joined_symbols}' after date filtering."
+            logger.warning(f"⚠️ No news articles found matching criteria '{joined_symbols}' after date filtering.")
+            return []
 
         return formatted_results
 
@@ -299,6 +288,6 @@ def get_market_news(symbols: Optional[str] = None, limit: int = 10)->list[NewsSe
         
 if __name__ == "__main__":
     # Run with streamable-http, support configuring host and port through environment variables to avoid conflicts
-    print("Running Alpha Vantage News Tool as search tool")
+    logger.info("Running Alpha Vantage News Tool as search tool")
     port = int(os.getenv("SEARCH_HTTP_PORT", "8001"))
     mcp.run(transport="streamable-http", port=port)

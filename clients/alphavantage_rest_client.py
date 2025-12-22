@@ -5,9 +5,10 @@ import httpx
 
 
 class AlphaVantageRestClient:
+    BASE_URL = "https://www.alphavantage.co/query"
+
     def __init__(self, api_key: str):
         self.api_key = api_key
-        self.base_url = "https://www.alphavantage.co/query"
 
     def get_news_sentiments(self, tickers: Sequence[str], limit: int = 10):
         """
@@ -21,16 +22,22 @@ class AlphaVantageRestClient:
 
         if not tickers:
             raise ValueError("Tickers list must contain at least one symbol.")
+        try:            
+            params = {
+                "function": "NEWS_SENTIMENT",
+                "tickers": ",".join(tickers),
+                "limit": limit,
+                "apikey": self.api_key,
+            }
 
-        params = {
-            "function": "NEWS_SENTIMENT",
-            "tickers": ",".join(tickers),
-            "limit": limit,
-            "apikey": self.api_key,
-        }
-
-        response = httpx.get(self.base_url, params=params)
-        response.raise_for_status()
-        data = response.json()
-        logging.debug(f"[get_news_sentiments]: {data}")
-        return data
+            response = httpx.get(self.BASE_URL, params=params)
+            response.raise_for_status()
+            data = response.json()
+            logging.debug(f"[get_news_sentiments]: {data}")
+            return data
+        except httpx.HTTPError as e:
+            logging.error(f"HTTP error occurred: {e}")
+            raise
+        except Exception as e:
+            logging.error(f"Failed to fetch news sentiments from Alpha Vantage: {e}")
+            raise RuntimeError(f"Failed to fetch news sentiments from Alpha Vantage: {e}")

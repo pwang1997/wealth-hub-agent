@@ -2,7 +2,7 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 
 load_dotenv()
 alpha_vantage_api_key = os.getenv("ALPHAVANTAGE_API_KEY")
@@ -19,15 +19,4 @@ app = FastAPI(title="Wealth Hub Agent API",
 @app.get("/health")
 async def health_check():
   return {"status": "ok"}
-
-
-@app.get("/news-sentiments")
-async def get_news_sentiments(tickers: str, limit: int = 10):
-    from clients.alphavantage_rest_client import AlphaVantageRestClient
-
-    if not alpha_vantage_api_key:
-        raise HTTPException(status_code=500, detail="AlphaVantage API key not configured")  
-    client = AlphaVantageRestClient(alpha_vantage_api_key)
-    data = client.get_news_sentiments(tickers.split(","), limit)
-    return data
     

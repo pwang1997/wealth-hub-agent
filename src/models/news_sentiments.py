@@ -11,7 +11,7 @@ class NewsSentiment(BaseModel):
     url : str
     summary: str
     topics: str
-    overall_sentiment : Decimal
+    overall_sentiment : Decimal | str
     sentiment_label : str
     ticker_sentiment : list[str]
     time_published: str
