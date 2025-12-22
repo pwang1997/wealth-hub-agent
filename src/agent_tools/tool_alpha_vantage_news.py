@@ -6,7 +6,7 @@ from typing import Optional, Sequence, Union
 
 import mcp
 from dotenv import load_dotenv
-from fastapi import logger
+from fastapi.logger import logger
 from fastmcp import FastMCP
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
