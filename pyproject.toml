@@ -16,7 +16,7 @@ dependencies = [
   "pyyaml>=6.0.2",
   "python-jose>=3.5.0",
   # Agent-specific deps (from requirements.txt)
-  "openai",
+  "openai>=2.14.0",
   "httpx",
   "mcp",
   "finnhub-python>=2.4.26",
