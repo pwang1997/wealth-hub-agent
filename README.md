@@ -35,3 +35,13 @@ Wealth Hub Agent provides a terminal-based stock ticker experience with live Fin
    - `help` to show available commands.
    - `quit` / `exit` to stop the app (auto-saves before exiting).
 7. Configuration lives in `stock_config.yml`, which updates with every save or exit.
+
+## MCP Servers
+
+This repo includes small MCP servers under `src/agent_tools/` that expose market-data tools over MCP.
+
+### Finnhub MCP
+
+- Requires `FINNHUB_API_KEY` in your environment (see Quick Start step 4).
+- Run locally: `uv run python src/agent_tools/finnhub_mcp.py`
+- Configure port with `FINNHUB_MCP_PORT` (default `8002`).
