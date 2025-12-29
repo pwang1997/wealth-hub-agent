@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from agent_tools.mcp_manager import MCPManager
+from src.agent_tools.mcp_manager import MCPManager
 
 
 class BaseAgent(ABC):

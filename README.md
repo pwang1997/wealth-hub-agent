@@ -40,6 +40,11 @@ Wealth Hub Agent provides a terminal-based stock ticker experience with live Fin
 
 This repo includes small MCP servers under `src/agent_tools/` that expose market-data tools over MCP.
 
+### Run all local MCP servers
+
+- Run: `make mcp`
+- Logs are prefixed per server as `[alpha_vantage][stdout] ...` / `[finnhub][stderr] ...`
+
 ### Finnhub MCP
 
 - Requires `FINNHUB_API_KEY` in your environment (see Quick Start step 4).

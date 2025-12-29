@@ -9,6 +9,9 @@ dev:
 cli:
 	uv run ./cli/main.py
 
+mcp:
+	uv run python ./src/scripts/run_mcp_servers.py
+
 lint:
 	uv run --extra dev ruff check .
 	uv run --extra dev ruff format --check .
