@@ -14,8 +14,10 @@ if REPO_ROOT not in sys.path:
 from clients.finnhub_rest_client import FinnHubRestClient
 from src.factory.mcp_server_factory import McpServerFactory
 from src.utils.cache import cache_key
+from src.utils.logging_config import configure_logging
 
 load_dotenv()
+configure_logging()
 
 cache = Cache("./.finnhub_mcp_cache")
 mcp_server = McpServerFactory.create_mcp_server("FinnhubMcpServer")
@@ -90,6 +92,5 @@ async def get_company_peer(symbol: str, grouping: Optional[str] = None) -> Any:
 
 
 if __name__ == "__main__":
-    logger.info("Running Finnhub MCP server")
     port = int(os.getenv("FINNHUB_MCP_PORT", "8002"))
     McpServerFactory.run_default_mcp_server(mcp_server, port)

@@ -15,8 +15,10 @@ if REPO_ROOT not in sys.path:
 
 from src.factory.mcp_server_factory import McpServerFactory
 from src.utils.cache import cache_key
+from src.utils.logging_config import configure_logging
 
 load_dotenv()
+configure_logging()
 
 cache = Cache("./.alpha_vantage_mcp_cache")
 
