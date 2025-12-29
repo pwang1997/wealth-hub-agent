@@ -1,7 +1,9 @@
 import os
 import sys
+from functools import cache
 from typing import Any, Dict, List
 
+from diskcache import Cache
 from dotenv import load_dotenv
 from fastapi.logger import logger
 from fastmcp import Client as MCPClient
@@ -13,12 +15,13 @@ if REPO_ROOT not in sys.path:
 
 
 from src.factory.mcp_server_factory import McpServerFactory
+from src.utils.cache import cache_key, is_rate_limited
 
 load_dotenv()
 
-REMOTE_MCP_SERVER_URL = (
-    f"https://mcp.alphavantage.co/mcp?apikey={os.getenv('ALPHA_VANTAGE_API_KEY', 'demo')}"
-)
+cache = Cache("./.alpha_vantage_mcp_cache")
+
+REMOTE_MCP_SERVER_URL = f"https://mcp.alphavantage.co/mcp?apikey={os.getenv('ALPHA_VANTAGE_API_KEY')}"
 
 mcp_server = McpServerFactory.create_mcp_server("AlphaVantageMcpServer")
 
@@ -36,7 +39,6 @@ async def _call_remote_tool(
 ) -> Any:
     async with _create_remote_client(server_url) as client:
         return await client.call_tool(tool_name, tool_input)
-
 
 def _serialize_mcp_tool(tool: Any) -> Dict[str, Any]:
     if tool is None:
@@ -90,9 +92,19 @@ async def news_sentiment(
 @mcp_server.tool()
 async def company_overview(symbol: str) -> Any:
     """Proxy to the remote Alpha Vantage `COMPANY_OVERVIEW` tool."""
+    key = cache_key("AlphaVantage", "COMPANY_OVERVIEW", {"symbol": symbol})
+
+    if key in cache:
+        logger.info(f"Using cached company_overview response: {cache[key]}")
+        return cache[key]
     if not symbol:
         raise ValueError("symbol is required")
-    return await _call_remote_tool("COMPANY_OVERVIEW", {"symbol": symbol}, server_url=REMOTE_MCP_SERVER_URL)
+    response = await _call_remote_tool("COMPANY_OVERVIEW", {"symbol": symbol}, server_url=REMOTE_MCP_SERVER_URL)
+    if response:
+        logger.info(f"Caching company_overview response, key: {key}, response: {response}")
+        cache.set(key, response, expire=60*60*24)
+        
+    return response
 
 if __name__ == "__main__":
     # Run with streamable-http, support configuring host and port through environment variables to avoid conflicts
