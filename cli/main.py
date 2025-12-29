@@ -26,12 +26,12 @@ class StockTickerApp:
         self.console = Console()
         self.stock_data = {}
         self.symbols = []
-        self.config_file = 'stock_config.yml'
+        self.config_file = "stock_config.yml"
         self.running = True
         self.lock = threading.Lock()
-        self.user_input = ''
+        self.user_input = ""
         self.command_history = []
-        self.message = ''
+        self.message = ""
         self.message_time = 0
 
         self.load_config()
@@ -51,7 +51,7 @@ class StockTickerApp:
             return self.symbols.copy()
 
     def handle_trade_update(self, trade):
-        symbol = trade.get('s')
+        symbol = trade.get("s")
         if not symbol:
             return
 
@@ -59,24 +59,21 @@ class StockTickerApp:
             if symbol not in self.symbols:
                 return
 
-        price = trade.get('p')
-        timestamp_value = trade.get('t')
+        price = trade.get("p")
+        timestamp_value = trade.get("t")
         if price is None or timestamp_value is None:
             return
 
-        timestamp = datetime.fromtimestamp(timestamp_value / 1000).strftime('%H:%M:%S')
+        timestamp = datetime.fromtimestamp(timestamp_value / 1000).strftime("%H:%M:%S")
 
         with self.lock:
-            old_price = self.stock_data.get(symbol, {}).get('price')
-            if old_price and old_price != 0:
-                change = ((price - old_price) / old_price) * 100
-            else:
-                change = 0
+            old_price = self.stock_data.get(symbol, {}).get("price")
+            change = ((price - old_price) / old_price) * 100 if old_price and old_price != 0 else 0
 
             self.stock_data[symbol] = {
-                'price': price,
-                'change': change,
-                'timestamp': timestamp,
+                "price": price,
+                "change": change,
+                "timestamp": timestamp,
             }
 
     def load_config(self) -> None:
@@ -120,13 +117,13 @@ class StockTickerApp:
                 while self.running:
                     char = self.get_char()
                     if char:
-                        if char in ('\n', '\r'):
+                        if char in ("\n", "\r"):
                             self.command_history.append(self.user_input)
                             self.process_command(self.user_input)
-                            self.user_input = ''
-                        elif char == '\x7f':
+                            self.user_input = ""
+                        elif char == "\x7f":
                             self.user_input = self.user_input[:-1]
-                        elif char == '\x03':
+                        elif char == "\x03":
                             break
                         elif char.isprintable():
                             self.user_input += char
@@ -150,23 +147,23 @@ class StockTickerApp:
             self.console.print("\n[yellow]Application closed[/]")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import dotenv
-    
-    dotenv.load_dotenv()
-    API_KEY = dotenv.get_key('.env', 'FINNHUB_API_KEY') or 'your_finnhub_api_key_here'
 
-    if API_KEY == 'your_finnhub_api_key_here':
-        print('⚠️  Please set your Finnhub API key in the code')
-        print('Get your free API key at: https://finnhub.io/register')
-        print('\nCommands available:')
-        print('  add <SYMBOL>    - Add a stock ticker')
-        print('  remove <SYMBOL> - Remove a stock ticker')
-        print('  list            - List all tracked symbols')
-        print('  clear           - Remove all symbols')
-        print('  save            - Manually save configuration')
-        print('  help            - Show help message')
-        print('  quit/exit       - Exit application (auto-saves)')
+    dotenv.load_dotenv()
+    API_KEY = dotenv.get_key(".env", "FINNHUB_API_KEY") or "your_finnhub_api_key_here"
+
+    if API_KEY == "your_finnhub_api_key_here":
+        print("⚠️  Please set your Finnhub API key in the code")
+        print("Get your free API key at: https://finnhub.io/register")
+        print("\nCommands available:")
+        print("  add <SYMBOL>    - Add a stock ticker")
+        print("  remove <SYMBOL> - Remove a stock ticker")
+        print("  list            - List all tracked symbols")
+        print("  clear           - Remove all symbols")
+        print("  save            - Manually save configuration")
+        print("  help            - Show help message")
+        print("  quit/exit       - Exit application (auto-saves)")
         print("\nConfiguration is saved to 'stock_config.yml'")
         sys.exit(1)
 

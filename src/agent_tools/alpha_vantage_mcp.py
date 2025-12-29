@@ -1,7 +1,6 @@
 import os
 import sys
-from functools import cache
-from typing import Any, Dict, List
+from typing import Any
 
 from diskcache import Cache
 from dotenv import load_dotenv
@@ -15,13 +14,15 @@ if REPO_ROOT not in sys.path:
 
 
 from src.factory.mcp_server_factory import McpServerFactory
-from src.utils.cache import cache_key, is_rate_limited
+from src.utils.cache import cache_key
 
 load_dotenv()
 
 cache = Cache("./.alpha_vantage_mcp_cache")
 
-REMOTE_MCP_SERVER_URL = f"https://mcp.alphavantage.co/mcp?apikey={os.getenv('ALPHA_VANTAGE_API_KEY')}"
+REMOTE_MCP_SERVER_URL = (
+    f"https://mcp.alphavantage.co/mcp?apikey={os.getenv('ALPHA_VANTAGE_API_KEY')}"
+)
 
 mcp_server = McpServerFactory.create_mcp_server("AlphaVantageMcpServer")
 
@@ -35,12 +36,13 @@ def _create_remote_client(server_url: str) -> MCPClient:
 
 
 async def _call_remote_tool(
-    tool_name: str, tool_input: Dict[str, Any], server_url: str = REMOTE_MCP_SERVER_URL
+    tool_name: str, tool_input: dict[str, Any], server_url: str = REMOTE_MCP_SERVER_URL
 ) -> Any:
     async with _create_remote_client(server_url) as client:
         return await client.call_tool(tool_name, tool_input)
 
-def _serialize_mcp_tool(tool: Any) -> Dict[str, Any]:
+
+def _serialize_mcp_tool(tool: Any) -> dict[str, Any]:
     if tool is None:
         return {}
     if isinstance(tool, dict):
@@ -61,7 +63,7 @@ def _serialize_mcp_tool(tool: Any) -> Dict[str, Any]:
 
 
 @mcp_server.tool()
-async def discover_remote_tools(server_url: str = REMOTE_MCP_SERVER_URL) -> List[Dict[str, Any]]:
+async def discover_remote_tools(server_url: str = REMOTE_MCP_SERVER_URL) -> list[dict[str, Any]]:
     """Discover and return the tools exposed by a remote MCP server.
 
     Returns a list of tool descriptors (typically containing `name`, `description`, and `inputSchema`)
@@ -80,7 +82,7 @@ async def news_sentiment(
     limit: int = 0,
 ) -> Any:
     """Proxy to the remote Alpha Vantage `NEWS_SENTIMENT` tool."""
-    tool_input: Dict[str, Any] = {}
+    tool_input: dict[str, Any] = {}
     if tickers:
         tool_input["tickers"] = tickers
     if limit:
@@ -99,12 +101,15 @@ async def company_overview(symbol: str) -> Any:
         return cache[key]
     if not symbol:
         raise ValueError("symbol is required")
-    response = await _call_remote_tool("COMPANY_OVERVIEW", {"symbol": symbol}, server_url=REMOTE_MCP_SERVER_URL)
+    response = await _call_remote_tool(
+        "COMPANY_OVERVIEW", {"symbol": symbol}, server_url=REMOTE_MCP_SERVER_URL
+    )
     if response:
         logger.info(f"Caching company_overview response, key: {key}, response: {response}")
-        cache.set(key, response, expire=60*60*24)
-        
+        cache.set(key, response, expire=60 * 60 * 24)
+
     return response
+
 
 if __name__ == "__main__":
     # Run with streamable-http, support configuring host and port through environment variables to avoid conflicts

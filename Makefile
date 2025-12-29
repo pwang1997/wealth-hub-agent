@@ -1,4 +1,4 @@
-.PHONY: dev cli
+.PHONY: dev cli lint lint-fix
 
 dev:
 	# Install dev/test/tooling extras for local development (includes boto3 via dev extra)
@@ -8,3 +8,12 @@ dev:
 
 cli:
 	uv run ./cli/main.py
+
+lint:
+	uv run --extra dev ruff check .
+	uv run --extra dev ruff format --check .
+	$(MAKE) typecheck
+
+lint-fix:
+	uv run --extra dev ruff check --fix .
+	uv run --extra dev ruff format .

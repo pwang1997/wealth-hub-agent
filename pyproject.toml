@@ -36,19 +36,11 @@ dev = [
   "ruff>=0.6.9",
   "mypy>=1.11.2",
   "rich>=13.7.0",
-  "boto3>=1.40.56",
 ]
 test = [
   "pytest>=8.4.2",
   "testcontainers>=4.9.0",
   "httpx>=0.27.0",
-]
-tooling = [
-  "alembic>=1.16.5",
-]
-boto = [
-  # Optional group to pin AWS SDK if layering instead of using runtime
-  "boto3>=1.40.56",
 ]
 
 [tool.ruff]
@@ -58,7 +50,7 @@ exclude = ["alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E","F","I","UP","B","SIM","PL","RUF"]
-ignore = ["E501", "PLR0913", "PLC0415"]
+ignore = ["E501", "PLR0913", "PLC0415", "E402"]
 
 [tool.mypy]
 python_version = "3.9"

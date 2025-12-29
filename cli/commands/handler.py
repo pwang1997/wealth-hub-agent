@@ -1,7 +1,7 @@
-from typing import Any, List
+from typing import Any
 
 
-def _handle_add(app: Any, args: List[str]) -> None:
+def _handle_add(app: Any, args: list[str]) -> None:
     if not args:
         app.show_message("Usage: add <SYMBOL>")
         return
@@ -20,7 +20,7 @@ def _handle_add(app: Any, args: List[str]) -> None:
         app.show_message(f"{symbol} already exists")
 
 
-def _handle_remove(app: Any, args: List[str]) -> None:
+def _handle_remove(app: Any, args: list[str]) -> None:
     if not args:
         app.show_message("Usage: remove <SYMBOL>")
         return
@@ -40,13 +40,13 @@ def _handle_remove(app: Any, args: List[str]) -> None:
         app.show_message(f"{symbol} not found")
 
 
-def _handle_list(app: Any, args: List[str]) -> None:
+def _handle_list(app: Any, args: list[str]) -> None:
     with app.lock:
         symbols_str = ", ".join(app.symbols)
     app.show_message(f"Symbols: {symbols_str}")
 
 
-def _handle_clear(app: Any, args: List[str]) -> None:
+def _handle_clear(app: Any, args: list[str]) -> None:
     with app.lock:
         symbols_to_remove = app.symbols.copy()
         app.symbols.clear()
@@ -57,15 +57,15 @@ def _handle_clear(app: Any, args: List[str]) -> None:
     app.show_message("Cleared all symbols")
 
 
-def _handle_save(app: Any, args: List[str]) -> None:
+def _handle_save(app: Any, args: list[str]) -> None:
     app.save_config()
 
 
-def _handle_help(app: Any, args: List[str]) -> None:
+def _handle_help(app: Any, args: list[str]) -> None:
     app.show_message("Commands: add <SYMBOL>, remove <SYMBOL>, list, clear, save, quit")
 
 
-def _handle_quit(app: Any, args: List[str]) -> None:
+def _handle_quit(app: Any, args: list[str]) -> None:
     app.save_config()
     app.running = False
 

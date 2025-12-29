@@ -1,5 +1,3 @@
-
-
 from typing import Optional
 
 from fastapi.middleware import Middleware
@@ -8,12 +6,11 @@ from starlette.middleware.cors import CORSMiddleware
 
 
 class McpServerFactory:
-
     @staticmethod
-    def create_mcp_server(mcp_name : str, middleware : Optional[list[Middleware]] = None) -> FastMCP:
+    def create_mcp_server(mcp_name: str, middleware: Optional[list[Middleware]] = None) -> FastMCP:
         mcp = FastMCP(mcp_name, middleware=middleware)
         return mcp
-    
+
     def _create_local_mcp_cors_middleware(self) -> Middleware:
         return Middleware(
             CORSMiddleware,
@@ -26,11 +23,8 @@ class McpServerFactory:
                 "Content-Type",
             ],
             expose_headers=["mcp-session-id"],
-    )
-    
+        )
+
     @staticmethod
-    def run_default_mcp_server(mcp : FastMCP,
-                               port: str, 
-                               transport: str = "streamable-http"):
+    def run_default_mcp_server(mcp: FastMCP, port: str, transport: str = "streamable-http"):
         mcp.run(transport=transport, port=port)
-        
