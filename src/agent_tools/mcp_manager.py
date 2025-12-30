@@ -3,8 +3,7 @@ import sys
 from dataclasses import dataclass
 from typing import Optional
 
-from src.agent_tools.mcp_subprocess_runner import (McpServerProcessSpec,
-                                                   McpSubprocessRunner)
+from src.agent_tools.mcp_subprocess_runner import McpServerProcessSpec, McpSubprocessRunner
 
 
 @dataclass(frozen=True)
