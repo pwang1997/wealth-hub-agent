@@ -12,6 +12,7 @@ from openai import OpenAI
 
 router = APIRouter(prefix="/rag", tags=["investments"])
 
+
 def _get_chromadb_client():
     api_key = os.getenv("CHROMA_API_KEY")
     tenant = os.getenv("CHROMA_TENANT")
@@ -22,7 +23,6 @@ def _get_chromadb_client():
     persist_dir = os.getenv("CHROMA_PERSIST_DIR") or os.path.join("storage", "chroma")
     os.makedirs(persist_dir, exist_ok=True)
     return chromadb.PersistentClient(path=persist_dir)
-
 
 
 @router.post("/upload_pdf")
@@ -38,17 +38,17 @@ async def upload_pdf(
     api_key = os.getenv("LLAMA_CLOUD_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="LLAMA_CLOUD_API_KEY is not set.")
-    
+
     parser = LlamaParse(
-        api_key=api_key,    # can also be set in your env as LLAMA_CLOUD_API_KEY
-        num_workers=4,       # if multiple files passed, split in `num_workers` API calls
+        api_key=api_key,  # can also be set in your env as LLAMA_CLOUD_API_KEY
+        num_workers=4,  # if multiple files passed, split in `num_workers` API calls
         verbose=True,
-        language="en",       # optionally define a language, default=en
+        language="en",  # optionally define a language, default=en
     )
-    
+
     file_bytes = await file.read()
     result = await parser.aparse(file_bytes, extra_info={"file_name": file.filename})
-    
+
     markdown_documents = result.get_markdown_documents(split_by_page=True)
 
     try:
@@ -91,12 +91,13 @@ async def upload_pdf(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to index into ChromaDB: {e}") from e
-    
+
     return {
         "collection_name": collection_name,
         "num_chunks_indexed": len(ids),
         "markdown_documents": markdown_documents,
     }
+
 
 @router.get("/chat")
 async def chat(
@@ -113,10 +114,7 @@ async def chat(
     client = _get_chromadb_client()
     collection = client.get_or_create_collection(name=collection_name)
 
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=top_k
-    )
+    results = collection.query(query_embeddings=[query_embedding], n_results=top_k)
 
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:

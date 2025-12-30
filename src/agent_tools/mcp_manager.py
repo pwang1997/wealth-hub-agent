@@ -58,7 +58,6 @@ class MCPManager:
                 port_env_var="RAG_MCP_PORT",
                 default_port=8300,
             ),
-            
         ]
 
         specs: list[McpServerProcessSpec] = []

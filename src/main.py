@@ -16,6 +16,7 @@ app = FastAPI(title="Wealth Hub Agent API", logger=logging.getLogger(__name__))
 
 app.include_router(rag_router)
 
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}

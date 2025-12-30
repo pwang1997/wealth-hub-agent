@@ -25,6 +25,7 @@ configure_logging()
 mcp_server = McpServerFactory.create_mcp_server("AnalystReportMcpServer")
 cache = Cache("./.rag_mcp_cache")
 
+
 def _get_chromadb_client():
     api_key = os.getenv("CHROMA_API_KEY")
     tenant = os.getenv("CHROMA_TENANT")
@@ -97,6 +98,8 @@ def _resolve_collection_name(client: Any, input_data: "RAGRetrieveInput") -> str
     domain = input_data.domain
     corpus = input_data.corpus
     company_name = input_data.company_name
+    if company_name is not None and not company_name.strip():
+        company_name = None
 
     candidates: list[str] = []
     candidates.append(f"{domain}_{corpus}_{company_name}")
@@ -137,7 +140,11 @@ class RAGRetrieveInput(BaseModel):
         "analyst_report", description="Used to build collection name if `collection` is omitted."
     )
     company_name: Optional[str] = Field(
-        None, description="The company's stock symbol. Used to build collection name if `collection` is omitted."
+        None,
+        description=(
+            "Used to build collection name if `collection` is omitted. This should match the value used "
+            "during indexing (see `/rag/upload_pdf`)."
+        ),
     )
     top_k: int = Field(5, ge=1, le=50, description="Number of chunks to retrieve (1-50).")
     filters: Optional[dict[str, Any]] = Field(
@@ -152,7 +159,8 @@ class RAGRetrieveInput(BaseModel):
     max_context_chars: int = Field(
         8000, ge=0, le=50000, description="Maximum characters to include in `context`."
     )
-    
+
+
 @mcp_server.tool()
 async def retrieve_report(input: RAGRetrieveInput) -> dict[str, Any]:
     """Retrieve relevant analyst-report chunks from ChromaDB for RAG.
@@ -164,7 +172,9 @@ async def retrieve_report(input: RAGRetrieveInput) -> dict[str, Any]:
     if not input.query or not input.query.strip():
         raise ValueError("query is required")
 
-    collection_hint = input.collection or f"{input.domain}_{input.corpus}_{input.company_name}"
+    embed_model_name = os.getenv("RAG_EMBED_MODEL") or "default"
+    company_name_for_key = input.company_name.strip() if input.company_name else None
+    collection_hint = input.collection or f"{input.domain}_{input.corpus}_{company_name_for_key}"
     key = cache_key(
         "ChromaDB",
         "retrieve_report",
@@ -174,6 +184,7 @@ async def retrieve_report(input: RAGRetrieveInput) -> dict[str, Any]:
             "top_k": input.top_k,
             "filters": input.filters,
             "document_contains": input.document_contains,
+            "embed_model": embed_model_name,
         },
     )
     if key in cache:
@@ -191,7 +202,6 @@ async def retrieve_report(input: RAGRetrieveInput) -> dict[str, Any]:
             f"Failed to open Chroma collection '{collection_name}'. Available: {available}"
         ) from exc
 
-    embed_model_name = os.getenv("RAG_EMBED_MODEL") or "default"
     embed_model = resolve_embed_model(embed_model_name)
     query_embedding = await asyncio.to_thread(embed_model.get_query_embedding, input.query)
 
@@ -211,7 +221,7 @@ async def retrieve_report(input: RAGRetrieveInput) -> dict[str, Any]:
     context = _build_rag_context(matches, max_chars=input.max_context_chars)
 
     response: dict[str, Any] = {
-        "collection": collection_hint,
+        "collection": collection_name,
         "query": input.query,
         "top_k": input.top_k,
         "num_matches": len(matches),
@@ -221,7 +231,7 @@ async def retrieve_report(input: RAGRetrieveInput) -> dict[str, Any]:
         "context": context,
         "timestamp": datetime.utcnow().isoformat() + "Z",
     }
-    cache.set(key, response, expire=60 * 60 * 24)
+    cache.set(key, response, expire=60 * 5)
     return response
 
 
