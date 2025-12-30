@@ -3,7 +3,8 @@ import sys
 from dataclasses import dataclass
 from typing import Optional
 
-from src.agent_tools.mcp_subprocess_runner import McpServerProcessSpec, McpSubprocessRunner
+from src.agent_tools.mcp_subprocess_runner import (McpServerProcessSpec,
+                                                   McpSubprocessRunner)
 
 
 @dataclass(frozen=True)
@@ -44,14 +45,21 @@ class MCPManager:
                     self._repo_root, "src", "agent_tools", "alpha_vantage_mcp.py"
                 ),
                 port_env_var="SEARCH_HTTP_PORT",
-                default_port=8001,
+                default_port=8100,
             ),
             McpLocalServerConfig(
                 name="finnhub",
                 script_path=os.path.join(self._repo_root, "src", "agent_tools", "finnhub_mcp.py"),
                 port_env_var="FINNHUB_MCP_PORT",
-                default_port=8002,
+                default_port=8200,
             ),
+            McpLocalServerConfig(
+                name="rag",
+                script_path=os.path.join(self._repo_root, "src", "agent_tools", "rag_mcp.py"),
+                port_env_var="RAG_MCP_PORT",
+                default_port=8300,
+            ),
+            
         ]
 
         specs: list[McpServerProcessSpec] = []
