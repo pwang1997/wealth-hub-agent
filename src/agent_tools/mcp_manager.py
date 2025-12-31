@@ -3,7 +3,8 @@ import sys
 from dataclasses import dataclass
 from typing import Optional
 
-from src.agent_tools.mcp_subprocess_runner import McpServerProcessSpec, McpSubprocessRunner
+from src.agent_tools.mcp_subprocess_runner import (McpServerProcessSpec,
+                                                   McpSubprocessRunner)
 
 
 @dataclass(frozen=True)
@@ -55,7 +56,7 @@ class MCPManager:
             McpLocalServerConfig(
                 name="rag",
                 script_path=os.path.join(
-                    self._repo_root, "src", "agent_tools", "rag_mcp", "__main__.py"
+                    self._repo_root, "src", "agent_tools", "analyst_report", "server.py"
                 ),
                 port_env_var="RAG_MCP_PORT",
                 default_port=8300,
