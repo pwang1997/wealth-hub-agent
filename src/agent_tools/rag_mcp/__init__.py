@@ -15,10 +15,12 @@ def _ensure_repo_root_on_path() -> None:
 
 _ensure_repo_root_on_path()
 
-from src.agent_tools.edgar.search_reports import register_tools as register_edgar_tools  # noqa: E402
-from src.agent_tools.rag.retrieve_report import register_tools as register_rag_tools  # noqa: E402
-from src.factory.mcp_server_factory import McpServerFactory  # noqa: E402
-from src.utils.logging_config import configure_logging  # noqa: E402
+from src.agent_tools.edgar.search_reports import (
+    register_tools as register_edgar_tools,
+)
+from src.agent_tools.rag.retrieve_report import register_tools as register_rag_tools
+from src.factory.mcp_server_factory import McpServerFactory
+from src.utils.logging_config import configure_logging
 
 load_dotenv()
 configure_logging()
@@ -28,4 +30,3 @@ cache = Cache("./.rag_mcp_cache")
 
 register_rag_tools(mcp_server, cache=cache)
 register_edgar_tools(mcp_server)
-

@@ -8,9 +8,8 @@ import chromadb
 from diskcache import Cache
 from fastapi.logger import logger
 
-from src.utils.cache import CacheConfig, cache_key
-
 from src.agent_tools.rag.context_builder import safe_json_cache_args
+from src.utils.cache import CacheConfig, cache_key
 
 
 @lru_cache(maxsize=1)
@@ -63,4 +62,3 @@ def get_collection_or_raise(client: Any, collection_name: str, *, cache: Cache) 
         raise ValueError(
             f"Failed to open Chroma collection '{collection_name}'. Available: {available}"
         ) from exc
-

@@ -22,4 +22,3 @@ def get_cik_for_ticker(ticker: str) -> str:
 def build_filing_href(cik: str, accession: str, document: str) -> str:
     accession_no_dashes = accession.replace("-", "")
     return f"{EdgarConfig.SEC_ARCHIVES_BASE}/{int(cik)}/{accession_no_dashes}/{document}"
-

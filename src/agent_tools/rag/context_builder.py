@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Optional
+from typing import Any
 
 
 def jsonable(value: Any) -> Any:
@@ -14,7 +14,7 @@ def jsonable(value: Any) -> Any:
     return str(value)
 
 
-def normalize_company_name(value: Optional[str]) -> Optional[str]:
+def normalize_company_name(value: str | None) -> str | None:
     if value is None:
         return None
     stripped = value.strip()
@@ -68,4 +68,3 @@ def safe_json_cache_args(args: dict[str, Any]) -> dict[str, Any]:
     except TypeError:
         safe_args = {"_non_jsonable_args": str(safe_args)}
     return safe_args
-

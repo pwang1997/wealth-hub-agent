@@ -69,4 +69,3 @@ def register_tools(mcp_server: Any) -> None:
         """
 
         return _search_reports_impl(input)
-

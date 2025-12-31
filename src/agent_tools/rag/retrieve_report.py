@@ -10,9 +10,6 @@ from diskcache import Cache
 from fastapi.logger import logger
 from llama_index.core.embeddings import resolve_embed_model
 
-from src.models.rag_retrieve import RAGRetrieveInput
-from src.utils.cache import CacheConfig, cache_key
-
 from src.agent_tools.rag.chroma_utils import (
     get_chromadb_client,
     get_collection_or_raise,
@@ -25,6 +22,8 @@ from src.agent_tools.rag.context_builder import (
     normalize_company_name,
     safe_json_cache_args,
 )
+from src.models.rag_retrieve import RAGRetrieveInput
+from src.utils.cache import CacheConfig, cache_key
 
 
 @lru_cache(maxsize=4)
@@ -69,7 +68,9 @@ async def _retrieve_report_impl(input_data: RAGRetrieveInput, *, cache: Cache) -
 
     embed_model_name = os.getenv("RAG_EMBED_MODEL") or "default"
     company_name_for_key = normalize_company_name(input_data.company_name)
-    collection_hint = input_data.collection or f"{input_data.domain}_{input_data.corpus}_{company_name_for_key}"
+    collection_hint = (
+        input_data.collection or f"{input_data.domain}_{input_data.corpus}_{company_name_for_key}"
+    )
     key = cache_key(
         "ChromaDB",
         "retrieve_report",
