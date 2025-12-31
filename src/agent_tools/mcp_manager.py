@@ -54,7 +54,9 @@ class MCPManager:
             ),
             McpLocalServerConfig(
                 name="rag",
-                script_path=os.path.join(self._repo_root, "src", "agent_tools", "rag_mcp.py"),
+                script_path=os.path.join(
+                    self._repo_root, "src", "agent_tools", "rag_mcp", "__main__.py"
+                ),
                 port_env_var="RAG_MCP_PORT",
                 default_port=8300,
             ),
