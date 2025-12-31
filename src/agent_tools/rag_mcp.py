@@ -7,6 +7,7 @@ from functools import lru_cache
 from typing import Any, Optional
 
 import chromadb
+import requests
 from diskcache import Cache
 from dotenv import load_dotenv
 from fastapi.logger import logger
@@ -283,6 +284,107 @@ async def list_collections() -> list[str]:
     client = _get_chromadb_client()
     available = _list_collection_names(client)
     return available
+
+
+class SearchReportsInput(BaseModel):
+    ticker: str = Field(..., description="Company ticker symbol, e.g. AAPL")
+    filing_category: str = Field(..., description="SEC form type, e.g. 10-K, 10-Q, 8-K")
+    limit: int = Field(10, ge=1, le=50, description="Max number of filings to return")
+
+
+class FilingResult(BaseModel):
+    form: str
+    filing_date: str
+    accession_number: str
+    href: str
+
+
+class SearchReportsOutput(BaseModel):
+    ticker: str
+    cik: str
+    filings: list[FilingResult]
+
+
+SEC_TICKER_CIK_URL = "https://www.sec.gov/files/company_tickers.json"
+SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
+SEC_ARCHIVES_BASE = "https://www.sec.gov/Archives/edgar/data"
+
+HEADERS = {"User-Agent": "wealth-hub-agent wzlpuck@gmail.com"}
+
+
+def _get_cik_for_ticker(ticker: str) -> str:
+    resp = requests.get(SEC_TICKER_CIK_URL, headers=HEADERS, timeout=10)
+    resp.raise_for_status()
+
+    data = resp.json()
+    ticker = ticker.upper()
+
+    for entry in data.values():
+        if entry["ticker"].upper() == ticker:
+            return str(entry["cik_str"]).zfill(10)
+
+    raise ValueError(f"CIK not found for ticker: {ticker}")
+
+
+def _build_filing_href(cik: str, accession: str, document: str) -> str:
+    accession_no_dashes = accession.replace("-", "")
+    return f"{SEC_ARCHIVES_BASE}/{int(cik)}/{accession_no_dashes}/{document}"
+
+
+@mcp_server.tool()
+def search_reports(input: SearchReportsInput) -> SearchReportsOutput:
+    """
+    Search SEC EDGAR filings for a company and filing category.
+    Discovery-only tool. Does not retrieve document content.
+    """
+
+    cik = _get_cik_for_ticker(input.ticker)
+
+    url = SEC_SUBMISSIONS_URL.format(cik=cik)
+    resp = requests.get(url, headers=HEADERS, timeout=10)
+    resp.raise_for_status()
+
+    submissions = resp.json()
+    recent = submissions.get("filings", {}).get("recent", {})
+
+    forms = recent.get("form", [])
+    dates = recent.get("filingDate", [])
+    accessions = recent.get("accessionNumber", [])
+    documents = recent.get("primaryDocument", [])
+
+    filings: list[FilingResult] = []
+
+    for form, date, acc, doc in zip(forms, dates, accessions, documents):
+        if form != input.filing_category:
+            continue
+
+        filings.append(
+            FilingResult(
+                form=form,
+                filing_date=date,
+                accession_number=acc,
+                href=_build_filing_href(cik, acc, doc),
+            )
+        )
+
+        if len(filings) >= input.limit:
+            break
+
+    logger.info(
+        "search_reports",
+        extra={
+            "ticker": input.ticker,
+            "cik": cik,
+            "filing_category": input.filing_category,
+            "results": len(filings),
+        },
+    )
+
+    return SearchReportsOutput(
+        ticker=input.ticker.upper(),
+        cik=cik,
+        filings=filings,
+    )
 
 
 if __name__ == "__main__":
