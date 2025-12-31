@@ -1,7 +1,9 @@
 import asyncio
+import json
 import os
 import sys
 from datetime import datetime
+from functools import lru_cache
 from typing import Any, Optional
 
 import chromadb
@@ -26,7 +28,8 @@ mcp_server = McpServerFactory.create_mcp_server("AnalystReportMcpServer")
 cache = Cache("./.rag_mcp_cache")
 
 
-def _get_chromadb_client():
+@lru_cache(maxsize=1)
+def _get_chromadb_client() -> Any:
     api_key = os.getenv("CHROMA_API_KEY")
     tenant = os.getenv("CHROMA_TENANT")
     database = os.getenv("CHROMA_DATABASE")
@@ -36,6 +39,30 @@ def _get_chromadb_client():
     persist_dir = os.getenv("CHROMA_PERSIST_DIR") or os.path.join("storage", "chroma")
     os.makedirs(persist_dir, exist_ok=True)
     return chromadb.PersistentClient(path=persist_dir)
+
+
+@lru_cache(maxsize=4)
+def _get_embed_model(model_name: str) -> Any:
+    return resolve_embed_model(model_name or "default")
+
+
+def _jsonable(value: Any) -> Any:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, (list, tuple)):
+        return [_jsonable(v) for v in value]
+    if isinstance(value, dict):
+        return {str(k): _jsonable(v) for k, v in value.items()}
+    return str(value)
+
+
+def _safe_cache_key(provider: str, tool_name: str, args: dict[str, Any]) -> str:
+    safe_args = _jsonable(args)
+    try:
+        json.dumps(safe_args, sort_keys=True, separators=(",", ":"))
+    except TypeError:
+        safe_args = {"_non_jsonable_args": str(safe_args)}
+    return cache_key(provider, tool_name, safe_args)
 
 
 def _flatten_chroma_query_results(results: dict[str, Any]) -> list[dict[str, Any]]:
@@ -56,7 +83,7 @@ def _flatten_chroma_query_results(results: dict[str, Any]) -> list[dict[str, Any
             "id": doc_ids[idx] if idx < len(doc_ids) else None,
             "distance": dists[idx] if idx < len(dists) else None,
             "document": docs[idx] if idx < len(docs) else None,
-            "metadata": metas[idx] if idx < len(metas) else None,
+            "metadata": _jsonable(metas[idx]) if idx < len(metas) else None,
         }
         matches.append(match)
     return matches
@@ -79,6 +106,17 @@ def _build_rag_context(matches: list[dict[str, Any]], max_chars: int = 8000) -> 
 
 
 def _list_collection_names(client: Any) -> list[str]:
+    chroma_identity = {
+        "chroma_api_key_set": bool(os.getenv("CHROMA_API_KEY")),
+        "chroma_tenant": os.getenv("CHROMA_TENANT"),
+        "chroma_database": os.getenv("CHROMA_DATABASE"),
+    }
+    key = _safe_cache_key("ChromaDB", "list_collections", chroma_identity)
+    cached = cache.get(key)
+    if isinstance(cached, list) and all(isinstance(x, str) for x in cached):
+        logger.info(f"Using cached list_collections response: {key}")
+        return cached
+
     try:
         collections = client.list_collections()
     except Exception:
@@ -88,7 +126,11 @@ def _list_collection_names(client: Any) -> list[str]:
         name = getattr(c, "name", None)
         if isinstance(name, str) and name:
             names.append(name)
-    return sorted(set(names))
+    result = sorted(set(names))
+
+    logger.info(f"Caching list_collections result, key: {key}")
+    cache.set(key, result, expire=60)
+    return result
 
 
 def _resolve_collection_name(client: Any, input_data: "RAGRetrieveInput") -> str:
@@ -175,7 +217,7 @@ async def retrieve_report(input: RAGRetrieveInput) -> dict[str, Any]:
     embed_model_name = os.getenv("RAG_EMBED_MODEL") or "default"
     company_name_for_key = input.company_name.strip() if input.company_name else None
     collection_hint = input.collection or f"{input.domain}_{input.corpus}_{company_name_for_key}"
-    key = cache_key(
+    key = _safe_cache_key(
         "ChromaDB",
         "retrieve_report",
         {
@@ -202,7 +244,7 @@ async def retrieve_report(input: RAGRetrieveInput) -> dict[str, Any]:
             f"Failed to open Chroma collection '{collection_name}'. Available: {available}"
         ) from exc
 
-    embed_model = resolve_embed_model(embed_model_name)
+    embed_model = _get_embed_model(embed_model_name)
     query_embedding = await asyncio.to_thread(embed_model.get_query_embedding, input.query)
 
     where_document = None
@@ -223,9 +265,10 @@ async def retrieve_report(input: RAGRetrieveInput) -> dict[str, Any]:
     response: dict[str, Any] = {
         "collection": collection_name,
         "query": input.query,
+        "embed_model": embed_model_name,
         "top_k": input.top_k,
         "num_matches": len(matches),
-        "filters": input.filters,
+        "filters": _jsonable(input.filters),
         "document_contains": input.document_contains,
         "matches": matches,
         "context": context,
@@ -233,6 +276,13 @@ async def retrieve_report(input: RAGRetrieveInput) -> dict[str, Any]:
     }
     cache.set(key, response, expire=60 * 5)
     return response
+
+
+@mcp_server.tool()
+async def list_collections() -> list[str]:
+    client = _get_chromadb_client()
+    available = _list_collection_names(client)
+    return available
 
 
 if __name__ == "__main__":
