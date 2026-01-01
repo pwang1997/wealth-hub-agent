@@ -60,6 +60,11 @@ def _search_reports_impl(input_data: SearchReportsInput) -> SearchReportsOutput:
     )
 
 
+def search_reports_direct(input_data: SearchReportsInput) -> SearchReportsOutput:
+    """Direct invocation wrapper (no MCP server required)."""
+    return _search_reports_impl(input_data)
+
+
 def register_tools(mcp_server: Any) -> None:
     @mcp_server.tool()
     def search_reports(input: SearchReportsInput) -> SearchReportsOutput:

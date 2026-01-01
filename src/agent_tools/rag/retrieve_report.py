@@ -132,6 +132,11 @@ async def _list_collections_impl(*, cache: Cache) -> list[str]:
     return list_collection_names(client, cache=cache)
 
 
+async def retrieve_report_direct(input_data: RAGRetrieveInput, *, cache: Cache) -> dict[str, Any]:
+    """Direct invocation wrapper (no MCP server required)."""
+    return await _retrieve_report_impl(input_data, cache=cache)
+
+
 def register_tools(mcp_server: Any, *, cache: Cache) -> None:
     @mcp_server.tool()
     async def retrieve_report(input: RAGRetrieveInput) -> dict[str, Any]:
