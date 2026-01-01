@@ -25,17 +25,18 @@ def get_chromadb_client() -> Any:
     return chromadb.PersistentClient(path=persist_dir)
 
 
-def list_collection_names(client: Any, *, cache: Cache) -> list[str]:
+def list_collection_names(client: Any, *, cache: Cache | None) -> list[str]:
     chroma_identity = {
         "chroma_api_key_set": bool(os.getenv("CHROMA_API_KEY")),
         "chroma_tenant": os.getenv("CHROMA_TENANT"),
         "chroma_database": os.getenv("CHROMA_DATABASE"),
     }
     key = cache_key("ChromaDB", "list_collections", safe_json_cache_args(chroma_identity))
-    cached = cache.get(key)
-    if isinstance(cached, list) and all(isinstance(x, str) for x in cached):
-        logger.info(f"Using cached list_collections response: {key}")
-        return cached
+    if cache is not None:
+        cached = cache.get(key)
+        if isinstance(cached, list) and all(isinstance(x, str) for x in cached):
+            logger.info(f"Using cached list_collections response: {key}")
+            return cached
 
     try:
         collections = client.list_collections()
@@ -49,12 +50,13 @@ def list_collection_names(client: Any, *, cache: Cache) -> list[str]:
             names.append(name)
     result = sorted(set(names))
 
-    logger.info(f"Caching list_collections result, key: {key}")
-    cache.set(key, result, expire=CacheConfig.LIST_COLLECTIONS_CACHE_TTL_SECONDS)
+    if cache is not None:
+        logger.info(f"Caching list_collections result, key: {key}")
+        cache.set(key, result, expire=CacheConfig.LIST_COLLECTIONS_CACHE_TTL_SECONDS)
     return result
 
 
-def get_collection_or_raise(client: Any, collection_name: str, *, cache: Cache) -> Any:
+def get_collection_or_raise(client: Any, collection_name: str, *, cache: Cache | None) -> Any:
     try:
         return client.get_collection(name=collection_name)
     except Exception as exc:

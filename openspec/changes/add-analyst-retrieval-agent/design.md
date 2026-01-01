@@ -12,24 +12,33 @@ This change adds an “analyst retrieval agent” that orchestrates these tools 
 - Keep the agent usable without having to spin up MCP subprocesses (direct Python invocation), while still reusing existing tool logic.
 
 ## Non-Goals
-- Content fetching of EDGAR filings.
+- Building a general-purpose EDGAR ingestion pipeline beyond this agent workflow.
 - PDF indexing/ingestion changes.
 - Building endpoints/CLI wiring.
 
 ## Proposed API
 - Module: `src/agents/analyst/retrieval_agent.py`
-- Public entrypoint: `AnalystRetrievalAgent.retrieve(query: str, *, company_name: str | None = None, ticker: str | None = None, ...) -> dict`
+- Public entrypoint: `AnalystRetrievalAgent.retrieve(query: str, *, company_name: str | None = None, ticker: str | None = None, ...) -> AnalystRetrievalResult`
+- Response model: define `AnalystRetrievalResult` (and nested models as needed) as Pydantic `BaseModel` types so downstream agents can reliably consume the output.
 
 ## Orchestration Rules
 - Always attempt RAG retrieval first when a query is provided.
 - If RAG retrieval returns relevant matches, return the top 5.
 - If RAG retrieval returns no relevant matches:
   - Discover recent EDGAR filings (within ~6 months) using `search_reports`.
-  - Fetch filing content and upsert into the appropriate ChromaDB collection.
+  - Select at most 3 filings per query to fetch/ingest.
+  - Fetch the EDGAR primary document (HTML), chunk/embed, and upsert into ChromaDB under `corpus=edgar`.
+  - Collection naming SHOULD include the SEC form (e.g., `finance_edgar_<company>_10-K`) so downstream agents can target form-specific context.
   - Rerun RAG retrieval and return the top 5.
 
+## EDGAR API Compliance
+- EDGAR ingestion requests MUST be rate-limited to a maximum of 10 requests/second.
+- EDGAR ingestion requests MUST be single-threaded (no multi-threading) for now.
+- EDGAR ingestion MUST be limited to at most 3 filings per query.
+- Reference: https://www.sec.gov/search-filings/edgar-application-programming-interfaces
+
 ## Response Shape (Draft)
-The agent returns a JSON-serializable dict with keys:
+The agent returns a structured “final answer” model (Pydantic), which is JSON-serializable with keys:
 - `query`
 - `rag`: `{ collection, num_matches, matches, context }` (from `retrieve_report`, typically `top_k=5`)
 - `edgar`: `{ ticker, cik, filings }` when EDGAR was used, else `null`
