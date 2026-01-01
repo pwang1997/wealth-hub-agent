@@ -11,20 +11,14 @@ from dotenv import load_dotenv
 from fastapi.logger import logger
 
 from src.agent_tools.edgar.ingest_primary_document import (
-    EdgarIngestionPolicy,
-    ingest_edgar_primary_documents,
-)
+    EdgarIngestionPolicy, ingest_edgar_primary_documents)
 from src.agent_tools.edgar.search_reports import search_reports_direct
 from src.agent_tools.rag.context_builder import build_rag_context
 from src.agent_tools.rag.retrieve_report import retrieve_report_direct
-from src.models.analyst_retrieval import (
-    AnalystRetrievalError,
-    AnalystRetrievalResult,
-    EdgarFilingLink,
-    EdgarResult,
-    RagMatch,
-    RagResult,
-)
+from src.models.analyst_retrieval import (AnalystRetrievalError,
+                                          AnalystRetrievalResult,
+                                          EdgarFilingLink, EdgarResult,
+                                          RagMatch, RagResult)
 from src.models.rag_retrieve import RAGRetrieveInput, SearchReportsInput
 
 load_dotenv()
@@ -47,7 +41,7 @@ class AnalystRetrievalAgent:
         self._config = config or AnalystRetrievalConfig()
         self._cache = Cache(self._config.cache_dir)
 
-    async def retrieve(
+    async def process(
         self,
         query: str,
         *,
