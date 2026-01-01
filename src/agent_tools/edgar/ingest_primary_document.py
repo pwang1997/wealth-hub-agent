@@ -1,20 +1,22 @@
 from __future__ import annotations
 
+import os
 import re
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass
 from html import unescape
 from html.parser import HTMLParser
-from typing import Any, Iterable, Optional
+from typing import Any
 
-import os
 import requests
 from fastapi.logger import logger
 from llama_index.core.embeddings import resolve_embed_model
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.schema import Document
 
-from src.agent_tools.rag.chroma_utils import get_chromadb_client, list_collection_names
+from src.agent_tools.rag.chroma_utils import (get_chromadb_client,
+                                              list_collection_names)
 from src.agent_tools.rag.context_builder import normalize_company_name
 from src.models.rag_retrieve import FilingResult, RAGRetrieveInput
 from src.utils.edgar_config import EdgarConfig
@@ -33,7 +35,7 @@ class _HtmlTextExtractor(HTMLParser):
         self._parts: list[str] = []
         self._skip_depth = 0
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, Optional[str]]]) -> None:
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         tag = tag.lower()
         if tag in {"script", "style", "noscript"}:
             self._skip_depth += 1
@@ -154,7 +156,7 @@ def ingest_edgar_primary_documents(
     ticker: str,
     cik: str,
     rag_input: RAGRetrieveInput,
-    policy: EdgarIngestionPolicy = EdgarIngestionPolicy(),
+    policy: EdgarIngestionPolicy | None = None,
     embed_model_name: str | None = None,
     request_timeout_seconds: float = 20.0,
 ) -> dict[str, Any]:
@@ -164,6 +166,8 @@ def ingest_edgar_primary_documents(
     across queries. It is single-threaded and rate-limited to comply with EDGAR guidance.
     """
 
+    if policy is None:
+        policy = EdgarIngestionPolicy()
     if not filings:
         return {"collections": [], "attempted": 0, "ingested": 0, "skipped_existing": 0}
 
@@ -205,8 +209,12 @@ def ingest_edgar_primary_documents(
             skipped_existing += 1
             continue
 
-        last_request_at = _sleep_for_rate_limit(last_request_at=last_request_at, max_rps=policy.max_rps)
-        resp = requests.get(filing.href, headers=EdgarConfig.HEADERS, timeout=request_timeout_seconds)
+        last_request_at = _sleep_for_rate_limit(
+            last_request_at=last_request_at, max_rps=policy.max_rps
+        )
+        resp = requests.get(
+            filing.href, headers=EdgarConfig.HEADERS, timeout=request_timeout_seconds
+        )
         resp.raise_for_status()
         text = html_to_text(resp.text)
         if not text:

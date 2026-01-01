@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from typing import Any, Iterable
+from typing import Any
 
 from diskcache import Cache
 from dotenv import load_dotenv
@@ -234,7 +235,7 @@ def _discover_filings(
 
     unique: dict[str, Any] = {}
     for filing in all_filings:
-        unique[getattr(filing, "accession_number")] = filing
+        unique[filing.accession_number] = filing
     return list(unique.values()), cik
 
 
