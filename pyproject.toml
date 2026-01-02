@@ -32,6 +32,8 @@ dependencies = [
   "llama-index-embeddings-openai>=0.5.1",
   "llama-index-llms-openai>=0.6.12",
   "chromadb>=1.4.0",
+  "beautifulsoup4>=4.14.3",
+  "llama-index-vector-stores-chroma>=0.5.5",
 ]
 
 [project.optional-dependencies]
@@ -54,7 +56,7 @@ exclude = ["alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E","F","I","UP","B","SIM","PL","RUF"]
-ignore = ["E501", "PLR0913", "PLC0415", "E402"]
+ignore = ["E501", "PLR0913", "PLC0415", "E402", "PLR0915"]
 
 [tool.mypy]
 python_version = "3.9"

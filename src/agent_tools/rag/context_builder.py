@@ -1,17 +1,6 @@
 from __future__ import annotations
 
-import json
 from typing import Any
-
-
-def jsonable(value: Any) -> Any:
-    if value is None or isinstance(value, (str, int, float, bool)):
-        return value
-    if isinstance(value, (list, tuple)):
-        return [jsonable(v) for v in value]
-    if isinstance(value, dict):
-        return {str(k): jsonable(v) for k, v in value.items()}
-    return str(value)
 
 
 def normalize_company_name(value: str | None) -> str | None:
@@ -39,7 +28,7 @@ def flatten_chroma_query_results(results: dict[str, Any]) -> list[dict[str, Any]
             "id": doc_ids[idx] if idx < len(doc_ids) else None,
             "distance": dists[idx] if idx < len(dists) else None,
             "document": docs[idx] if idx < len(docs) else None,
-            "metadata": jsonable(metas[idx]) if idx < len(metas) else None,
+            "metadata": metas[idx] if idx < len(metas) else None,
         }
         matches.append(match)
     return matches
@@ -59,12 +48,3 @@ def build_rag_context(matches: list[dict[str, Any]], *, max_chars: int = 8000) -
             break
     context = "\n\n---\n\n".join(parts)
     return context[:max_chars]
-
-
-def safe_json_cache_args(args: dict[str, Any]) -> dict[str, Any]:
-    safe_args = jsonable(args)
-    try:
-        json.dumps(safe_args, sort_keys=True, separators=(",", ":"))
-    except TypeError:
-        safe_args = {"_non_jsonable_args": str(safe_args)}
-    return safe_args

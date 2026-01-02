@@ -1,5 +1,6 @@
 import asyncio
 import os
+from functools import lru_cache
 from typing import Optional
 
 import chromadb
@@ -13,6 +14,7 @@ from openai import OpenAI
 router = APIRouter(prefix="/rag", tags=["investments"])
 
 
+@lru_cache(maxsize=1)
 def _get_chromadb_client():
     api_key = os.getenv("CHROMA_API_KEY")
     tenant = os.getenv("CHROMA_TENANT")
@@ -20,9 +22,9 @@ def _get_chromadb_client():
     if api_key and tenant and database:
         return chromadb.CloudClient(api_key=api_key, tenant=tenant, database=database)
 
-    persist_dir = os.getenv("CHROMA_PERSIST_DIR") or os.path.join("storage", "chroma")
-    os.makedirs(persist_dir, exist_ok=True)
-    return chromadb.PersistentClient(path=persist_dir)
+    host = os.getenv("CHROMA_HOST") or "localhost"
+    port = int(os.getenv("CHROMA_PORT") or "8000")
+    return chromadb.HttpClient(host=host, port=port)
 
 
 @router.post("/upload_pdf")
