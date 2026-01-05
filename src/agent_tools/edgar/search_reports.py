@@ -26,6 +26,16 @@ async def _search_reports_impl(input_data: SearchReportsInput) -> SearchReportsO
     """
     cik = EdgarClient.get_cik_for_ticker(input_data.ticker)
 
+    logger.info(
+        "[search_reports] start",
+        extra={
+            "ticker": input_data.ticker,
+            "cik": cik,
+            "filing_category": input_data.filing_category,
+            "limit": input_data.limit,
+        },
+    )
+
     url = EdgarConfig.SEC_SUBMISSIONS_URL.format(cik=cik)
     resp = requests.get(url, headers=EdgarConfig.HEADERS, timeout=10)
     resp.raise_for_status()
@@ -101,6 +111,14 @@ async def _upsert_edgar_report_impl(href: str, metadata: dict, collection_name: 
     :param collection_name: target Chroma collection (e.g. 'edgar_filings')
     :param metadata: normalized filing metadata (ticker, cik, form, filing_date, accession_number, ...)
     """
+    logger.info(
+        "[upsert_edgar_report] start",
+        extra={
+            "href": href,
+            "collection_name": collection_name,
+            "metadata_keys": list(metadata.keys()),
+        },
+    )
     try:
         accession = metadata.get("accession_number")
         if not accession:
@@ -164,6 +182,15 @@ async def _upsert_edgar_report_impl(href: str, metadata: dict, collection_name: 
             accession,
         )
 
+        logger.info(
+            "[upsert_edgar_report] complete",
+            extra={
+                "accession_number": accession,
+                "node_chunks": len(nodes),
+                "href": href,
+            },
+        )
+
     except Exception as exc:
         logger.exception(
             "[upsert_edgar_report] failed for %s",
@@ -180,8 +207,27 @@ def register_tools(mcp_server: Any) -> None:
         Discovery-only tool. Does not retrieve document content.
         """
 
+        logger.info(
+            "[tool] search_reports invoked",
+            extra={
+                "ticker": input.ticker,
+                "filing_category": input.filing_category,
+                "limit": input.limit,
+            },
+        )
+
         return await _search_reports_impl(input)
 
     @mcp_server.tool()
     async def upsert_edgar_report(href: str, metadata: dict):
+
+        logger.info(
+            "[tool] upsert_edgar_report invoked",
+            extra={
+                "href": href,
+                "metadata_accession": metadata.get("accession_number"),
+                "collection": collection_name,
+            },
+        )
+
         return await _upsert_edgar_report_impl(href, metadata, collection_name)
