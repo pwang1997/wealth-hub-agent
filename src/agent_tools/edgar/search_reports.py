@@ -4,7 +4,6 @@ from typing import Any
 
 import aiohttp
 import requests
-from chromadb import Collection
 from fastapi.logger import logger
 from llama_index.core import Document, StorageContext, VectorStoreIndex
 from llama_index.core.node_parser import HTMLNodeParser, SentenceSplitter
@@ -18,8 +17,13 @@ from src.utils.edgar_config import EdgarConfig
 
 chroma_client = ChromaClient()
 
+collection_name = "edgar_filings"
+
 
 async def _search_reports_impl(input_data: SearchReportsInput) -> SearchReportsOutput:
+    """
+    Search Edgar filings with Edgar Api. Prepare embedding content for ChromaDB:edgar_filings.
+    """
     cik = EdgarClient.get_cik_for_ticker(input_data.ticker)
 
     url = EdgarConfig.SEC_SUBMISSIONS_URL.format(cik=cik)
@@ -28,24 +32,40 @@ async def _search_reports_impl(input_data: SearchReportsInput) -> SearchReportsO
 
     submissions = resp.json()
     recent = submissions.get("filings", {}).get("recent", {})
-
+    entity_name = submissions.get("name", "")
     forms = recent.get("form", [])
-    dates = recent.get("filingDate", [])
     accessions = recent.get("accessionNumber", [])
     documents = recent.get("primaryDocument", [])
+    filing_dates = recent.get("filingDate", [])
+    report_dates = recent.get("reportDate", [])
 
     filings: list[FilingResult] = []
 
-    for form, date, acc, doc in zip(forms, dates, accessions, documents):
+    for form, acc, doc, filing_date, report_date in zip(
+        forms, accessions, documents, filing_dates, report_dates
+    ):
         if form != input_data.filing_category:
             continue
+        href = EdgarClient.build_filing_href(cik, acc, doc)
+
+        metadata = {
+            "cik": cik,
+            "ticker": input_data.ticker.upper(),
+            "company_name": entity_name,
+            "form": form,
+            "filing_date": filing_date,
+            "report_date": report_date,
+            "accession_number": acc,
+            "collection_name": collection_name,
+        }
 
         filings.append(
             FilingResult(
                 form=form,
-                filing_date=date,
+                filing_date=filing_date,
                 accession_number=acc,
-                href=EdgarClient.build_filing_href(cik, acc, doc),
+                href=href,
+                metadata=metadata,
             )
         )
 
@@ -59,6 +79,7 @@ async def _search_reports_impl(input_data: SearchReportsInput) -> SearchReportsO
             "cik": cik,
             "filing_category": input_data.filing_category,
             "results": len(filings),
+            "collection_name": collection_name,
         },
     )
 
@@ -66,88 +87,83 @@ async def _search_reports_impl(input_data: SearchReportsInput) -> SearchReportsO
         ticker=input_data.ticker.upper(),
         cik=cik,
         filings=filings,
+        collection_name=collection_name,
     )
 
-
-async def preflight_chroma_collection(collection_name: str) -> Collection | None:
-    try:
-        collection = chroma_client.get_client().get_collection(collection_name)
-    except Exception:
-        # Collection does not exist
-        return None
-
-    # Production-safe emptiness check
-    if collection.count() == 0:
-        return None
-
-    logger.info(
-        "[upsert_edgar_report] collected %d nodes from %s",
-        collection.count(),
-        collection_name,
-    )
-    return collection
-
-
-def batch_insert(index, nodes, href):
-    BATCH_SIZE = 64  # intentionally conservative
-    for i in range(0, len(nodes), BATCH_SIZE):
-        index.insert_nodes(nodes[i : i + BATCH_SIZE])
-
-    logger.info(
-        "[upsert_edgar_report] Upserted %d nodes from %s",
-        len(nodes),
-        href,
-    )
-
-async def _upsert_edgar_report_impl(href: str):
+async def _upsert_edgar_report_impl(href: str, metadata: dict, collection_name: str):
     """
     Insert edgar report to Chroma vector database for future agent use.
-    Example: 
+    Example:
     e.g.1. after invoking function tool 'search_reports' (retrieve corresponding EDGAR fillings), insert relevant fillings to ChromaDb.
     e.g.2. retrieval_agent:[search_reports -> upsert_edgar_report] -> analyst_agent:[retrieve_report]
+
+    :param href: full SEC filing document URL
+    :param collection_name: target Chroma collection (e.g. 'edgar_filings')
+    :param metadata: normalized filing metadata (ticker, cik, form, filing_date, accession_number, ...)
     """
     try:
-        collection = await preflight_chroma_collection(collection_name="edgar_aapl_10k_2025")
-        if collection is None:
-            content = None
-            async with aiohttp.ClientSession(headers=EdgarConfig.HEADERS) as session:
-                content = await EdgarClient.get_filing_content(href, session)
+        accession = metadata.get("accession_number")
+        if not accession:
+            raise ValueError("metadata.accession_number is required")
+        client = chroma_client.get_client()
+        collection = client.get_or_create_collection(name=collection_name)
 
-            doc = Document(text=content, extra_info={"source": href})
-
-            parser = HTMLNodeParser(tags=["span", "td", "div"])
-            raw_nodes = parser.get_nodes_from_documents([doc])
-
-            cleaned_nodes = EdgarClient._normalize_html_nodes(raw_nodes)
-
-            splitter = SentenceSplitter(
-                chunk_size=512,
-                chunk_overlap=64,
+        existing = collection.get(
+            where={"accession_number": accession},
+            limit=1,
+        )
+        if existing and existing.get("ids"):
+            logger.info(
+                "[upsert_edgar_report] accession %s already ingested, skipping",
+                accession,
             )
-            nodes = splitter.get_nodes_from_documents(cleaned_nodes)
+            return
 
-            # Final defensive filter
-            MAX_NODE_TEXT_LEN, MIN_NODE_TEXT_LEN = 1200, 50
-            nodes = [n for n in nodes if MIN_NODE_TEXT_LEN <= len(n.text) <= MAX_NODE_TEXT_LEN]
+        async with aiohttp.ClientSession(headers=EdgarConfig.HEADERS) as session:
+            content = await EdgarClient.get_filing_content(href, session)
 
-            if not nodes:
-                logger.warning("[upsert_edgar_report] No valid nodes produced")
-                return
+        if not content:
+            logger.warning("[upsert_edgar_report] empty content for %s", href)
+            return
 
-            # ------------------------------------------------------------------
-            # 6. Chroma Cloud vector store
-            # ------------------------------------------------------------------
-            collection = chroma_client.get_client().get_or_create_collection(
-                name="edgar_aapl_10k_2025"
-            )
+        doc = Document(text=content, extra_info=metadata | {"source": href})
 
-            vector_store = ChromaVectorStore(chroma_collection=collection)
+        parser = HTMLNodeParser(tags=["span", "td", "div"])
+        raw_nodes = parser.get_nodes_from_documents([doc])
+        cleaned_nodes = EdgarClient._normalize_html_nodes(raw_nodes)
 
-            storage_context = StorageContext.from_defaults(vector_store=vector_store)
+        splitter = SentenceSplitter(chunk_size=512, chunk_overlap=64)
+        nodes = splitter.get_nodes_from_documents(cleaned_nodes)
 
-            index = VectorStoreIndex(nodes=[], storage_context=storage_context)
+        # Defensive length filter
+        MAX_LEN, MIN_LEN = 1200, 50
+        nodes = [n for n in nodes if MIN_LEN <= len(n.text) <= MAX_LEN]
 
-            batch_insert(index, nodes, href)
+        if not nodes:
+            logger.warning("[upsert_edgar_report] no valid nodes for %s", href)
+            return
+
+        for i, node in enumerate(nodes):
+            node.metadata = metadata | {
+                "source": href,
+                "chunk_index": i,
+            }
+            node.id_ = f"{accession}:{i}"
+
+        vector_store = ChromaVectorStore(chroma_collection=collection)
+        storage_context = StorageContext.from_defaults(vector_store=vector_store)
+        index = VectorStoreIndex(nodes=[], storage_context=storage_context)
+
+        BATCH_SIZE = 64
+        for i in range(0, len(nodes), BATCH_SIZE):
+            index.insert_nodes(nodes[i : i + BATCH_SIZE])
+
+        logger.info(
+            "[upsert_edgar_report] ingested %d nodes for accession %s",
+            len(nodes),
+            accession,
+        )
+
     except Exception as exc:
         logger.exception(
             "[upsert_edgar_report] failed for %s",
@@ -167,5 +183,5 @@ def register_tools(mcp_server: Any) -> None:
         return await _search_reports_impl(input)
 
     @mcp_server.tool()
-    async def upsert_edgar_report(href: str):
-        return await _upsert_edgar_report_impl(href)
+    async def upsert_edgar_report(href: str, metadata: dict):
+        return await _upsert_edgar_report_impl(href, metadata, collection_name)

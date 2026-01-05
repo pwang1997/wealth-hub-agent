@@ -47,14 +47,27 @@ class SearchReportsInput(BaseModel):
     limit: int = Field(10, ge=1, le=50, description="Max number of filings to return")
 
 
+class EdgarSearchMetaData(BaseModel):
+    cik: str
+    ticker: str
+    company_name: str
+    form: str
+    filing_date: str
+    report_date: str
+    accession_number: str
+    collection_name: str
+
+
 class FilingResult(BaseModel):
     form: str
     filing_date: str
     accession_number: str
     href: str
+    metadata: EdgarSearchMetaData
 
 
 class SearchReportsOutput(BaseModel):
     ticker: str
     cik: str
     filings: list[FilingResult]
+    collection_name: str
