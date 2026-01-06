@@ -34,6 +34,7 @@ dependencies = [
   "chromadb>=1.4.0",
   "beautifulsoup4>=4.14.3",
   "llama-index-vector-stores-chroma>=0.5.5",
+  "pytest>=9.0.1",
 ]
 
 [project.optional-dependencies]

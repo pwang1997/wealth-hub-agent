@@ -14,14 +14,21 @@ class ChromaClient:
         tenant = os.getenv("CHROMA_TENANT")
         database = os.getenv("CHROMA_DATABASE")
 
-        self.client = None
+        self._client: Any | None = None
+        self._client_factory = self._make_client_factory(api_key, tenant, database)
 
+    def _make_client_factory(self, api_key: str | None, tenant: str | None, database: str | None):
         if api_key and tenant and database:
-            self.client = chromadb.CloudClient(api_key=api_key, tenant=tenant, database=database)
-        else:
-            host = os.getenv("CHROMA_HOST") or "localhost"
-            port = int(os.getenv("CHROMA_PORT") or "8000")
-            self.client = chromadb.HttpClient(host=host, port=port)
+            return lambda: chromadb.CloudClient(api_key=api_key, tenant=tenant, database=database)
+
+        host = os.getenv("CHROMA_HOST") or "localhost"
+        port = int(os.getenv("CHROMA_PORT") or "8000")
+        return lambda: chromadb.HttpClient(host=host, port=port)
+
+    def _get_client(self):
+        if self._client is None:
+            self._client = self._client_factory()
+        return self._client
 
     async def list_collection_names(self, *, cache: Cache | None) -> list[str]:
         chroma_identity = {
@@ -36,8 +43,9 @@ class ChromaClient:
                 logger.info(f"Using cached list_collections response: {key}")
                 return cached
 
+        client = self._get_client()
         try:
-            collections = self.client.list_collections()
+            collections = client.list_collections()
         except Exception:
             return []
 
@@ -54,13 +62,14 @@ class ChromaClient:
         return result
 
     def get_client(self):
-        return self.client
+        return self._get_client()
 
     async def get_collection_or_raise(
         self, collection_name: str | None, *, cache: Cache | None
     ) -> Any:
         try:
-            return self.client.get_collection(name=collection_name)
+            client = self._get_client()
+            return client.get_collection(name=collection_name)
         except Exception as exc:
             available = await self.list_collection_names(cache=cache)
             raise ValueError(
