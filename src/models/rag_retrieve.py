@@ -28,7 +28,7 @@ class RAGRetrieveInput(BaseModel):
     )
     top_k: int = Field(5, ge=1, le=50, description="Number of chunks to retrieve (1-50).")
     filters: Optional[dict[str, Any]] = Field(
-        None, description="Chroma `where` filter (metadata constraints)."
+        None, description="Chroma `where` filter (metadata constraints). expected one of the filters [ticker, form]"
     )
     document_contains: Optional[str] = Field(
         None,

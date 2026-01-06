@@ -11,8 +11,7 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 
 from clients.chroma_client import ChromaClient
 from src.agent_tools.edgar.edgar_client import EdgarClient
-from src.models.rag_retrieve import (FilingResult, SearchReportsInput,
-                                     SearchReportsOutput)
+from src.models.rag_retrieve import FilingResult, SearchReportsInput, SearchReportsOutput
 from src.utils.edgar_config import EdgarConfig
 
 chroma_client = ChromaClient()
@@ -99,6 +98,7 @@ async def _search_reports_impl(input_data: SearchReportsInput) -> SearchReportsO
         filings=filings,
         collection_name=collection_name,
     )
+
 
 async def _upsert_edgar_report_impl(href: str, metadata: dict, collection_name: str):
     """
@@ -220,7 +220,6 @@ def register_tools(mcp_server: Any) -> None:
 
     @mcp_server.tool()
     async def upsert_edgar_report(href: str, metadata: dict):
-
         logger.info(
             "[tool] upsert_edgar_report invoked",
             extra={
