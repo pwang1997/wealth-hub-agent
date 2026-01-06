@@ -9,8 +9,7 @@ from diskcache import Cache
 from llama_index.core.embeddings import resolve_embed_model
 
 from clients.chroma_client import ChromaClient
-from src.agent_tools.rag.context_builder import (build_rag_context,
-                                                 flatten_chroma_query_results)
+from src.agent_tools.rag.context_builder import build_rag_context, flatten_chroma_query_results
 from src.models.rag_retrieve import RAGRetrieveInput
 
 chroma_client = ChromaClient()
@@ -63,7 +62,9 @@ async def _retrieve_report(input_data: RAGRetrieveInput) -> dict[str, Any]:
     # Enforce minimal EDGAR metadata filter schema
     validate_if_domain_edgar(input_data.domain, filters)
 
-    collection = await chroma_client.get_collection_or_raise(collection_name=collection_name, cache=None)
+    collection = await chroma_client.get_collection_or_raise(
+        collection_name=collection_name, cache=None
+    )
 
     embed_model = resolve_embed_model(embed_model_name)
     query_embedding = await asyncio.to_thread(embed_model.get_query_embedding, input_data.query)
