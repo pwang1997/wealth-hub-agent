@@ -1,14 +1,28 @@
 from __future__ import annotations
 
+import os
 import time
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Callable
 
 from fastmcp import Client as MCPClient
 from fastmcp.client.transports import StreamableHttpTransport
 
 MetadataFactory = Callable[..., Any]
+
+
+def _load_mcp_tool_timeout_seconds() -> float:
+    raw_timeout = os.getenv("MCP_TOOL_TIMEOUT_SECONDS")
+    if not raw_timeout:
+        return 120.0
+    try:
+        return float(raw_timeout.strip())
+    except ValueError:
+        return 120.0
+
+
+DEFAULT_MCP_TOOL_TIMEOUT_SECONDS = _load_mcp_tool_timeout_seconds()
 
 
 class BaseAgent(ABC):
@@ -36,9 +50,17 @@ class BaseAgent(ABC):
         raise NotImplementedError("Subclasses must implement this method")
 
     @staticmethod
-    async def _call_mcp_tool(server_url: str, tool_name: str, tool_input: dict[str, Any]) -> Any:
+    async def _call_mcp_tool(
+        server_url: str,
+        tool_name: str,
+        tool_input: dict[str, Any],
+        timeout: timedelta | float | int | None = None,
+    ) -> Any:
         transport = StreamableHttpTransport(server_url, headers={"accept-encoding": "identity"})
-        async with MCPClient(transport) as client:
+        resolved_timeout = (
+            timeout if timeout is not None else DEFAULT_MCP_TOOL_TIMEOUT_SECONDS
+        )
+        async with MCPClient(transport, timeout=resolved_timeout) as client:
             return await client.call_tool(tool_name, tool_input)
 
     @staticmethod
