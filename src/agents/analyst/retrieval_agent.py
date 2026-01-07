@@ -5,6 +5,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any
 
+from openai import OpenAI
 from pydantic import ValidationError
 
 from src.models.rag_retrieve import (
@@ -69,8 +70,8 @@ class AnalystRetrievalAgent(BaseAgent):
         edgar_filings = self._default_search_output(ticker)
         news_items: list[MarketNewsSource] = []
         rag_answer = ""
-
-        try:
+        
+        try:            
             search_payload = SearchReportsInput(
                 ticker=ticker,
                 filing_category=normalized_category,
@@ -101,7 +102,7 @@ class AnalystRetrievalAgent(BaseAgent):
         try:
             retrieve_payload = RAGRetrieveInput(
                 query=query,
-                collection=edgar_filings.collection_name or DEFAULT_COLLECTION,
+                collection=DEFAULT_COLLECTION,
                 domain="edgar",
                 corpus="analyst_report",
                 company_name=company_name,
@@ -230,9 +231,7 @@ class AnalystRetrievalAgent(BaseAgent):
                     {"href": filing.href, "metadata": metadata_dict},
                 )
             except Exception as exc:
-                warnings.append(
-                    f"upsert failed for {metadata_dict.get('accession_number')}: {exc}"
-                )
+                warnings.append(f"upsert failed for {metadata_dict.get('accession_number')}: {exc}")
         end_time = datetime.now(timezone.utc).isoformat()
         duration_ms = int((time.monotonic() - start_monotonic) * 1000)
         return RetrievalAgentToolMetadata(
