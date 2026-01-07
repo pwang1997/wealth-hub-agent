@@ -46,7 +46,8 @@ class ChromaClient:
         client = self._get_client()
         try:
             collections = client.list_collections()
-        except Exception:
+        except Exception as exc:
+            logger.error("Failed to list Chroma collections", exc_info=exc)
             return []
 
         names: list[str] = []

@@ -10,7 +10,7 @@ from src.utils.edgar_config import EdgarConfig
 
 
 class EdgarClient:
-    def get_cik_for_ticker(ticker: str) -> str:
+    async def get_cik_for_ticker(ticker: str) -> str:
         resp = requests.get(EdgarConfig.SEC_TICKER_CIK_URL, headers=EdgarConfig.HEADERS, timeout=10)
         resp.raise_for_status()
 

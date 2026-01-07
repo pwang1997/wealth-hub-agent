@@ -49,9 +49,9 @@ async def _retrieve_report(input_data: RAGRetrieveInput) -> dict[str, Any]:
     if not input_data.query or not input_data.query.strip():
         raise ValueError("query is required")
 
-    embed_model_name = os.getenv("RAG_EMBED_MODEL") or "default"
+    embed_model_name = os.getenv("RAG_EMBED_MODEL")
     # EDGAR uses a single, fixed collection; do not guess collection names
-    collection_name = input_data.collection or "edgar_fillings"
+    collection_name = input_data.collection or "edgar_filings"
 
     filters = input_data.filters
     if input_data.domain == "edgar":
@@ -73,7 +73,8 @@ async def _retrieve_report(input_data: RAGRetrieveInput) -> dict[str, Any]:
     if input_data.document_contains:
         where_document = {"$contains": input_data.document_contains}
 
-    raw_results = collection.query(
+    raw_results = await asyncio.to_thread(
+        collection.query,
         query_embeddings=[query_embedding],
         n_results=input_data.top_k,
         where=filters,

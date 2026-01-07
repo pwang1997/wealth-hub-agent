@@ -6,32 +6,32 @@ from pydantic import Field
 
 class RAGRetrieveInput(BaseModel):
     query: str = Field(..., description="Natural-language query to search for.")
-    collection: Optional[str] = Field(
+    collection: str | None = Field(
         None,
         description=(
             "Chroma collection name. If omitted, the tool attempts to build one from "
             "`domain`, `corpus`, and `company_name`."
         ),
     )
-    # domain: str = Field(
-    #     "finance", description="Used to build collection name if `collection` is omitted."
-    # )
-    # corpus: str = Field(
-    #     "analyst_report", description="Used to build collection name if `collection` is omitted."
-    # )
-    # company_name: Optional[str] = Field(
-    #     None,
-    #     description=(
-    #         "Used to build collection name if `collection` is omitted. This should match the value used "
-    #         "during indexing (see `/rag/upload_pdf`)."
-    #     ),
-    # )
+    domain: str | None = Field(
+        None, description="Used to build collection name if `collection` is omitted."
+    )
+    corpus: str | None = Field(
+        None, description="Used to build collection name if `collection` is omitted."
+    )
+    company_name: str | None = Field(
+        None,
+        description=(
+            "Used to build collection name if `collection` is omitted. This should match the value used "
+            "during indexing (see `/rag/upload_pdf`)."
+        ),
+    )
     top_k: int = Field(5, ge=1, le=50, description="Number of chunks to retrieve (1-50).")
     filters: Optional[dict[str, Any]] = Field(
         None,
         description="Chroma `where` filter (metadata constraints). expected one of the filters [ticker, form]",
     )
-    document_contains: Optional[str] = Field(
+    document_contains: str | None = Field(
         None,
         description=(
             "Optional substring filter applied to document text via Chroma `where_document`."

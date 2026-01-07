@@ -15,8 +15,14 @@ class DummyResponse:
     def raise_for_status(self) -> None:
         return None
 
-    def json(self) -> dict:
+    async def json(self) -> dict:
         return self._payload
+
+    async def __aenter__(self) -> DummyResponse:
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        return None
 
 
 def test_search_reports_respects_limit(monkeypatch):
@@ -34,10 +40,13 @@ def test_search_reports_respects_limit(monkeypatch):
             },
         }
 
+        async def fake_get_cik_for_ticker(ticker: str) -> str:
+            return "0000000001"
+
         monkeypatch.setattr(
             search_reports.EdgarClient,
             "get_cik_for_ticker",
-            lambda ticker: "0000000001",
+            fake_get_cik_for_ticker,
         )
         monkeypatch.setattr(
             search_reports.EdgarClient,
@@ -45,10 +54,26 @@ def test_search_reports_respects_limit(monkeypatch):
             lambda cik, acc, doc: f"https://edgar/{cik}/{acc}/{doc}",
         )
 
-        def fake_requests_get(url, headers, timeout):
-            return DummyResponse(sample_submissions)
+        class DummyClientSession:
+            def __init__(self, headers=None, timeout=None) -> None:
+                self.headers = headers
+                self.timeout = timeout
+                self._response = DummyResponse(sample_submissions)
 
-        monkeypatch.setattr(search_reports.requests, "get", fake_requests_get)
+            async def __aenter__(self) -> DummyClientSession:
+                return self
+
+            async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+                return None
+
+            def get(self, url: str) -> DummyResponse:
+                return self._response
+
+        monkeypatch.setattr(
+            search_reports.aiohttp,
+            "ClientSession",
+            DummyClientSession,
+        )
 
         input_data = SearchReportsInput(ticker="AAPL", filing_category="10-K", limit=1)
         output = await search_reports._search_reports_impl(input_data)

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 import aiohttp
-import requests
 from fastapi.logger import logger
 from llama_index.core import Document, StorageContext, VectorStoreIndex
 from llama_index.core.node_parser import HTMLNodeParser, SentenceSplitter
@@ -23,7 +22,7 @@ async def _search_reports_impl(input_data: SearchReportsInput) -> SearchReportsO
     """
     Search Edgar filings with Edgar Api. Prepare embedding content for ChromaDB:edgar_filings.
     """
-    cik = EdgarClient.get_cik_for_ticker(input_data.ticker)
+    cik = await EdgarClient.get_cik_for_ticker(input_data.ticker)
 
     logger.info(
         "[search_reports] start",
@@ -36,10 +35,17 @@ async def _search_reports_impl(input_data: SearchReportsInput) -> SearchReportsO
     )
 
     url = EdgarConfig.SEC_SUBMISSIONS_URL.format(cik=cik)
-    resp = requests.get(url, headers=EdgarConfig.HEADERS, timeout=10)
-    resp.raise_for_status()
+    timeout = aiohttp.ClientTimeout(total=10)
+    async with (
+        aiohttp.ClientSession(
+            headers=EdgarConfig.HEADERS,
+            timeout=timeout,
+        ) as session,
+        session.get(url) as resp,
+    ):
+        resp.raise_for_status()
+        submissions = await resp.json()
 
-    submissions = resp.json()
     recent = submissions.get("filings", {}).get("recent", {})
     entity_name = submissions.get("name", "")
     forms = recent.get("form", [])
