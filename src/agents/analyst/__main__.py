@@ -19,6 +19,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 load_dotenv()
 
+
 def get_para_from_query(query: str) -> tuple[str, str]:
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import time
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
 
 from fastmcp import Client as MCPClient
@@ -57,9 +57,7 @@ class BaseAgent(ABC):
         timeout: timedelta | float | int | None = None,
     ) -> Any:
         transport = StreamableHttpTransport(server_url, headers={"accept-encoding": "identity"})
-        resolved_timeout = (
-            timeout if timeout is not None else DEFAULT_MCP_TOOL_TIMEOUT_SECONDS
-        )
+        resolved_timeout = timeout if timeout is not None else DEFAULT_MCP_TOOL_TIMEOUT_SECONDS
         async with MCPClient(transport, timeout=resolved_timeout) as client:
             return await client.call_tool(tool_name, tool_input)
 

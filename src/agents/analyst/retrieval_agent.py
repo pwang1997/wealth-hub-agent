@@ -6,7 +6,6 @@ import time
 from datetime import datetime, timezone
 from typing import Any
 
-from openai import OpenAI
 from pydantic import ValidationError
 
 from src.models.rag_retrieve import (
@@ -73,8 +72,11 @@ class AnalystRetrievalAgent(BaseAgent):
         edgar_filings = self._default_search_output(ticker)
         news_items: list[MarketNewsSource] = []
         rag_answer = ""
-        
-        logger.info("starting search_reports", extra={"ticker": ticker, "filing_category": normalized_category, "limit": search_limit})
+
+        logger.info(
+            "starting search_reports",
+            extra={"ticker": ticker, "filing_category": normalized_category, "limit": search_limit},
+        )
         try:
             search_payload = SearchReportsInput(
                 ticker=ticker,
@@ -139,7 +141,10 @@ class AnalystRetrievalAgent(BaseAgent):
             rag_answer = raw_retrieve.get("context", "") or ""
             logger.info(
                 "retrieve_report completed",
-                extra={"matches": len(raw_retrieve.get("matches") or []), "context_length": len(rag_answer)},
+                extra={
+                    "matches": len(raw_retrieve.get("matches") or []),
+                    "context_length": len(rag_answer),
+                },
             )
         except ToolExecutionError as exc:
             metadata.retrieve = exc.metadata
@@ -154,7 +159,10 @@ class AnalystRetrievalAgent(BaseAgent):
             news_payload["tickers"] = ticker.upper()
         if news_limit:
             news_payload["limit"] = news_limit
-        logger.info("starting news_sentiment", extra={"tickers": news_payload.get("tickers"), "limit": news_limit})
+        logger.info(
+            "starting news_sentiment",
+            extra={"tickers": news_payload.get("tickers"), "limit": news_limit},
+        )
         try:
             raw_news, metadata.news = await self._call_tool_with_metadata(
                 self._alpha_vantage_url, "news_sentiment", news_payload
