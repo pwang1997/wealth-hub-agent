@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import sys
 
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..",".."))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+    
 from src.agents.analyst.retrieval_agent import AnalystRetrievalAgent
 
 
@@ -13,7 +19,6 @@ async def main() -> None:
         query="what are the core businesses of the company?",
         ticker="NVDA",
         company_name="NVIDIA",
-        domain="tech",
         top_k=3,
     )
 
