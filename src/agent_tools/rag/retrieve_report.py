@@ -9,8 +9,7 @@ from diskcache import Cache
 from llama_index.core.embeddings import resolve_embed_model
 
 from clients.chroma_client import ChromaClient
-from src.agent_tools.rag.context_builder import (build_rag_context,
-                                                 flatten_chroma_query_results)
+from src.agent_tools.rag.context_builder import build_rag_context, flatten_chroma_query_results
 from src.models.rag_retrieve import RAGRetrieveInput
 
 chroma_client = ChromaClient()
@@ -95,7 +94,7 @@ async def _retrieve_report(input_data: RAGRetrieveInput) -> dict[str, Any]:
         "document_contains": input_data.document_contains,
         "matches": matches,
         "context": context,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     return response
 

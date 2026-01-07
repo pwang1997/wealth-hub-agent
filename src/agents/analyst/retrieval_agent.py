@@ -7,12 +7,18 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from src.models.rag_retrieve import (FilingResult, RAGRetrieveInput,
-                                     SearchReportsInput, SearchReportsOutput)
-from src.models.retrieval_agent import (MarketNewsSource,
-                                        RetrievalAgentMetadata,
-                                        RetrievalAgentOutput,
-                                        RetrievalAgentToolMetadata)
+from src.models.rag_retrieve import (
+    FilingResult,
+    RAGRetrieveInput,
+    SearchReportsInput,
+    SearchReportsOutput,
+)
+from src.models.retrieval_agent import (
+    MarketNewsSource,
+    RetrievalAgentMetadata,
+    RetrievalAgentOutput,
+    RetrievalAgentToolMetadata,
+)
 
 from ..base_agent import BaseAgent
 
@@ -154,6 +160,12 @@ class AnalystRetrievalAgent(BaseAgent):
             warnings=warnings,
         )
 
+    async def get_query_reasoning():
+        """
+        Retrieval Agent does not require query reasoning.
+        """
+        pass
+    
     async def call_mcp_tool(self, tools: list[dict[str, Any]]) -> Any:  # type: ignore[override]
         raise NotImplementedError("call_mcp_tool is not used by the retrieval agent.")
 
@@ -198,7 +210,9 @@ class AnalystRetrievalAgent(BaseAgent):
                     {"href": filing.href, "metadata": filing.metadata},
                 )
             except Exception as exc:
-                warnings.append(f"upsert failed for {filing.metadata.get('accession_number')}: {exc}")
+                warnings.append(
+                    f"upsert failed for {filing.metadata.get('accession_number')}: {exc}"
+                )
         end_time = datetime.now(timezone.utc).isoformat()
         duration_ms = int((time.monotonic() - start_monotonic) * 1000)
         return RetrievalAgentToolMetadata(

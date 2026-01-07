@@ -79,6 +79,7 @@ def test_retrieval_agent_process(monkeypatch):
 def test_retrieval_agent_handles_retriable_error(monkeypatch):
     async def run():
         agent = AnalystRetrievalAgent()
+
         async def fake_call(self, server_url, tool_name, tool_input):
             if tool_name == "search_reports":
                 raise ValueError("search backend busy")

@@ -28,8 +28,9 @@ class BaseAgent(ABC):
     async def call_mcp_tool(self, tools: list[dict]):
         raise NotImplementedError("Subclasses must implement this method")
 
+    @abstractmethod
     async def get_query_reasoning():
-        pass
+        raise NotImplementedError("Subclasses must implement this method")
 
     def format_output(self):
         raise NotImplementedError("Subclasses must implement this method")
@@ -50,11 +51,7 @@ class BaseAgent(ABC):
     ) -> Any:
         end_time = datetime.now(timezone.utc).isoformat()
         duration_ms = int((time.monotonic() - start_monotonic) * 1000)
-        builder = (
-            metadata_factory
-            if metadata_factory is not None
-            else lambda **kwargs: kwargs
-        )
+        builder = metadata_factory if metadata_factory is not None else lambda **kwargs: kwargs
         return builder(
             tool=tool_name,
             start_time=start_time,

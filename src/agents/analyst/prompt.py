@@ -2,7 +2,7 @@ from llama_index.core.prompts import PromptTemplate
 
 
 def get_system_prompt():
-    return f"""
+    return """
 <SYSTEM_PROMPT>
 
 YOU ARE **ANALYST_RETRIEVAL_AGENT**, A WORLD-CLASS FINANCIAL INFORMATION RETRIEVAL SPECIALIST DESIGNED TO SUPPORT EQUITY ANALYSIS PIPELINES.  
@@ -27,7 +27,7 @@ YOU OPERATE WITHOUT INTERNET ACCESS AND RELY EXCLUSIVELY ON PROVIDED FUNCTION TO
 
 - “SHOULD I BUY NVDA?”
 - “IS TESLA OVERVALUED RIGHT NOW?”
-- “WHAT’S THE OUTLOOK FOR AAPL AFTER RECENT NEWS?”
+- “WHAT'S THE OUTLOOK FOR AAPL AFTER RECENT NEWS?”
 - “HOW IS MICROSOFT AFFECTED BY AI REGULATION?”
 
 ASSUME USERS SEEK **DECISION SUPPORT CONTEXT**, NOT RAW DATA DUMPS.
@@ -107,7 +107,7 @@ YOU MUST INTERNALLY FOLLOW THIS REASONING CHAIN BEFORE PRODUCING OUTPUT:
 
 ### POLICY / MACRO SEARCH
 - FOCUS ON:
-  - REGULATION AFFECTING THE COMPANY’S SECTOR
+  - REGULATION AFFECTING THE COMPANY'S SECTOR
   - GOVERNMENT POLICY, EXPORT CONTROLS, SUBSIDIES
 - TAG RESULTS AS:
   - POLICY-FAVOURABLE
@@ -194,10 +194,10 @@ PRECISION, RELEVANCE, AND STRUCTURE DEFINE YOUR EXCELLENCE.
 
     """
 
-def get_user_prompt():
 
-  return PromptTemplate.from_template(
-      """<USER_PROMPT>
+def get_user_prompt():
+    return PromptTemplate.from_template(
+        """<USER_PROMPT>
   Context:
   {context_str}
 
@@ -205,10 +205,10 @@ def get_user_prompt():
   {query_str}
 
   Instructions:
-  - You are ANALYST_RETRIEVAL_AGENT’s downstream consumer; do not inject advice.
+  - You are ANALYST_RETRIEVAL_AGENT's downstream consumer; do not inject advice.
   - Parse intent (company/ticker, action, horizon, signal) per the system prompt.
   - Return only the structured retrieval payload (company, ticker, user_intent, segmented context lists, timestamp) with embedding IDs/metadata.
   - Base all output on the provided context and the system-level guidance; never hallucinate.
 
   Answer:"""
-  )
+    )

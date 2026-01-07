@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -10,17 +10,17 @@ from .rag_retrieve import SearchReportsOutput
 
 class RetrievalAgentToolMetadata(BaseModel):
     tool: str
-    start_time: Optional[str] = None
-    end_time: Optional[str] = None
-    duration_ms: Optional[int] = None
+    start_time: str | None = None
+    end_time: str | None = None
+    duration_ms: int | None = None
     warnings: list[str] = Field(default_factory=list)
 
 
 class RetrievalAgentMetadata(BaseModel):
-    search: Optional[RetrievalAgentToolMetadata] = None
-    upsert: Optional[RetrievalAgentToolMetadata] = None
-    retrieve: Optional[RetrievalAgentToolMetadata] = None
-    news: Optional[RetrievalAgentToolMetadata] = None
+    search: RetrievalAgentToolMetadata | None = None
+    upsert: RetrievalAgentToolMetadata | None = None
+    retrieve: RetrievalAgentToolMetadata | None = None
+    news: RetrievalAgentToolMetadata | None = None
     warnings: list[str] = Field(default_factory=list)
 
 
