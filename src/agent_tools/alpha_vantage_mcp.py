@@ -116,5 +116,5 @@ async def company_overview(symbol: str) -> Any:
 if __name__ == "__main__":
     # Run with streamable-http, support configuring host and port through environment variables to avoid conflicts
     logger.info("Running Alpha Vantage Tool as search tool")
-    port = int(os.getenv("SEARCH_HTTP_PORT", "8001"))
+    port = int(os.getenv("SEARCH_HTTP_PORT", "8100"))
     McpServerFactory.run_default_mcp_server(mcp_server, port)

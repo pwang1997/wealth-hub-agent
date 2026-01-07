@@ -14,3 +14,5 @@ wheels/
 stock_config.*
 
 **/*mcp_cache/
+
+**cache

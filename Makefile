@@ -1,4 +1,4 @@
-.PHONY: dev cli lint lint-fix
+.PHONY: dev cli lint lint-fix test
 
 dev:
 	# Install dev/test/tooling extras for local development (includes boto3 via dev extra)
@@ -20,3 +20,6 @@ lint:
 lint-fix:
 	uv run --extra dev ruff check --fix .
 	uv run --extra dev ruff format .
+
+test:
+	uv run --extra test pytest ./tests/agents

@@ -92,5 +92,5 @@ async def get_company_peer(symbol: str, grouping: Optional[str] = None) -> Any:
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("FINNHUB_MCP_PORT", "8002"))
+    port = int(os.getenv("FINNHUB_MCP_PORT", "8200"))
     McpServerFactory.run_default_mcp_server(mcp_server, port)
