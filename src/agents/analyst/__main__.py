@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import sys
-from typing import Tuple
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -15,7 +15,10 @@ if REPO_ROOT not in sys.path:
 
 from src.agents.analyst.retrieval_agent import AnalystRetrievalAgent
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+
 load_dotenv()
+
 def get_para_from_query(query: str) -> tuple[str, str]:
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
@@ -35,12 +38,12 @@ def get_para_from_query(query: str) -> tuple[str, str]:
         messages=[
             {"role": "system", "content": "You are a structured data extraction assistant."},
             {"role": "user", "content": prompt},
-        ]
+        ],
     )
 
     payload = response.choices[0].message.content or ""
     payload = payload.strip()
-    
+
     try:
         parsed = json.loads(payload)
         return parsed.get("company_name", ""), parsed.get("ticker", "")
@@ -50,13 +53,17 @@ def get_para_from_query(query: str) -> tuple[str, str]:
 
 async def main() -> None:
     agent = AnalystRetrievalAgent()
-    query = "what are the core businesses of nvidia?"
+    query = "what are the core businesses of the company?"
     company_name, ticker = get_para_from_query(query)
+    logging.getLogger(__name__).info(
+        "Running retrieval agent workflow",
+        extra={"query": query, "ticker": ticker, "company_name": company_name},
+    )
 
     result = await agent.process(
         query=query,
-        ticker=ticker,
-        company_name=company_name,
+        ticker=ticker or "NVDA",
+        company_name=company_name or None,
         top_k=3,
     )
 

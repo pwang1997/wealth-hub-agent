@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import time
 from datetime import datetime, timezone
@@ -22,6 +23,8 @@ from src.models.retrieval_agent import (
 )
 
 from ..base_agent import BaseAgent
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_FILING_CATEGORY = "10-K"
 DEFAULT_SEARCH_LIMIT = 5
@@ -71,7 +74,8 @@ class AnalystRetrievalAgent(BaseAgent):
         news_items: list[MarketNewsSource] = []
         rag_answer = ""
         
-        try:            
+        logger.info("starting search_reports", extra={"ticker": ticker, "filing_category": normalized_category, "limit": search_limit})
+        try:
             search_payload = SearchReportsInput(
                 ticker=ticker,
                 filing_category=normalized_category,
@@ -81,6 +85,14 @@ class AnalystRetrievalAgent(BaseAgent):
                 self._rag_mcp_url, "search_reports", search_payload
             )
             edgar_filings = SearchReportsOutput.model_validate(raw_search)
+            logger.info(
+                "search_reports completed",
+                extra={
+                    "ticker": edgar_filings.ticker,
+                    "filings": len(edgar_filings.filings),
+                    "collection": edgar_filings.collection_name,
+                },
+            )
         except ToolExecutionError as exc:
             metadata.search = exc.metadata
             warnings.append(f"search_reports failed: {exc}")
@@ -89,7 +101,15 @@ class AnalystRetrievalAgent(BaseAgent):
             status = "partial"
             warnings.append(f"search_reports output invalid: {exc}")
 
+        logger.info(
+            "upsert_filings start",
+            extra={"filings": len(edgar_filings.filings)},
+        )
         metadata.upsert = await self._upsert_filings(edgar_filings.filings)
+        logger.info(
+            "upsert_filings completed",
+            extra={"warnings": metadata.upsert.warnings},
+        )
         if metadata.upsert.warnings:
             status = "partial"
             warnings.extend(metadata.upsert.warnings)
@@ -99,6 +119,10 @@ class AnalystRetrievalAgent(BaseAgent):
         }
         rag_answer = ""
         raw_retrieve: dict[str, Any] = {}
+        logger.info(
+            "starting retrieve_report",
+            extra={"query": query, "filters": retrieve_filters, "top_k": top_k},
+        )
         try:
             retrieve_payload = RAGRetrieveInput(
                 query=query,
@@ -113,6 +137,10 @@ class AnalystRetrievalAgent(BaseAgent):
                 self._rag_mcp_url, "retrieve_report", retrieve_payload
             )
             rag_answer = raw_retrieve.get("context", "") or ""
+            logger.info(
+                "retrieve_report completed",
+                extra={"matches": len(raw_retrieve.get("matches") or []), "context_length": len(rag_answer)},
+            )
         except ToolExecutionError as exc:
             metadata.retrieve = exc.metadata
             warnings.append(f"retrieve_report failed: {exc}")
@@ -121,12 +149,13 @@ class AnalystRetrievalAgent(BaseAgent):
             status = "partial"
             warnings.append(f"retrieve_report output invalid: {exc}")
 
+        news_payload: dict[str, Any] = {}
+        if ticker:
+            news_payload["tickers"] = ticker.upper()
+        if news_limit:
+            news_payload["limit"] = news_limit
+        logger.info("starting news_sentiment", extra={"tickers": news_payload.get("tickers"), "limit": news_limit})
         try:
-            news_payload: dict[str, Any] = {}
-            if ticker:
-                news_payload["tickers"] = ticker.upper()
-            if news_limit:
-                news_payload["limit"] = news_limit
             raw_news, metadata.news = await self._call_tool_with_metadata(
                 self._alpha_vantage_url, "news_sentiment", news_payload
             )

@@ -13,19 +13,19 @@ class RAGRetrieveInput(BaseModel):
             "`domain`, `corpus`, and `company_name`."
         ),
     )
-    domain: str = Field(
-        "finance", description="Used to build collection name if `collection` is omitted."
-    )
-    corpus: str = Field(
-        "analyst_report", description="Used to build collection name if `collection` is omitted."
-    )
-    company_name: Optional[str] = Field(
-        None,
-        description=(
-            "Used to build collection name if `collection` is omitted. This should match the value used "
-            "during indexing (see `/rag/upload_pdf`)."
-        ),
-    )
+    # domain: str = Field(
+    #     "finance", description="Used to build collection name if `collection` is omitted."
+    # )
+    # corpus: str = Field(
+    #     "analyst_report", description="Used to build collection name if `collection` is omitted."
+    # )
+    # company_name: Optional[str] = Field(
+    #     None,
+    #     description=(
+    #         "Used to build collection name if `collection` is omitted. This should match the value used "
+    #         "during indexing (see `/rag/upload_pdf`)."
+    #     ),
+    # )
     top_k: int = Field(5, ge=1, le=50, description="Number of chunks to retrieve (1-50).")
     filters: Optional[dict[str, Any]] = Field(
         None,
