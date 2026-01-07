@@ -5,6 +5,8 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+TIME_ELAPSED = 3
+
 
 def create_stock_table(stock_data, symbols, lock):
     """Build a table of tracked symbols with the latest price data."""
@@ -58,7 +60,7 @@ def create_layout(table, symbol_count, user_input, message, message_time):
     status_text.append("Connected to Finnhub WebSocket", style="green")
     status_text.append(f"    {symbol_count} symbols", style="dim")
 
-    if message and (time.time() - message_time < 3):
+    if message and (time.time() - message_time < TIME_ELAPSED):
         status_text.append(f"    | {message}", style="yellow")
 
     layout["status"].update(Panel(status_text, border_style="green"))

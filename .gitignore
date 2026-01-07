@@ -12,3 +12,7 @@ wheels/
 .env
 
 stock_config.*
+
+**/*mcp_cache/
+
+**cache

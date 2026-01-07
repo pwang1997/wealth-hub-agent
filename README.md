@@ -35,3 +35,25 @@ Wealth Hub Agent provides a terminal-based stock ticker experience with live Fin
    - `help` to show available commands.
    - `quit` / `exit` to stop the app (auto-saves before exiting).
 7. Configuration lives in `stock_config.yml`, which updates with every save or exit.
+
+## MCP Servers
+
+This repo includes small MCP servers under `src/agent_tools/` that expose market-data tools over MCP.
+
+### Run all local MCP servers
+
+- Run: `make mcp`
+- Logs are prefixed per server as `[alpha_vantage][stdout] ...` / `[finnhub][stderr] ...`
+
+### Finnhub MCP
+
+- Requires `FINNHUB_API_KEY` in your environment (see Quick Start step 4).
+- Run locally: `uv run python src/agent_tools/finnhub_mcp.py`
+- Configure port with `FINNHUB_MCP_PORT` (default `8002`).
+
+## Retrieval Agent workflow
+
+- The retrieval agent (`AnalystRetrievalAgent` in `src/agents/analyst/retrieval_agent.py`) chains Edgar filing search, vector upsert, RAG retrieval, and Alpha Vantage news/sentiment to return a single structured JSON payload.
+- Invoke it through the FastAPI orchestration endpoint (or directly with `AnalystRetrievalAgent.process(...)`); the handler should log `metadata.warnings` and re-trigger the workflow with adjusted inputs when receiving a `partial` status.
+- The JSON output matches `src/models/retrieval_agent.py`’s `RetrievalAgentOutput`: `edgar_filings` is a `SearchReportsOutput` (ticker/cik/collection plus a list of `FilingResult` entries) and `market_news` is a list of `MarketNewsSource` (extending `NewsSentiment` with `related_filings`).
+- The agent appends every MCP/tool error to `metadata.warnings` and returns `status="partial"` when anything fails; downstream callers should act on these diagnostics rather than assuming terminal failures.
