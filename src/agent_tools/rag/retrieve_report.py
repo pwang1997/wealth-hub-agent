@@ -21,7 +21,7 @@ def validate_if_domain_edgar(domain: str, filters: dict[str, Any] | None):
     if not isinstance(filters, dict):
         raise ValueError("EDGAR retrieval requires metadata filters as a dict")
 
-    required_keys = {"ticker", "form"}
+    required_keys = {"ticker"}
     missing = required_keys - set(filters.keys())
     if missing:
         raise ValueError(f"EDGAR retrieval requires metadata filters: missing {missing}")

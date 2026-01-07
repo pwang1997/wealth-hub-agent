@@ -95,7 +95,6 @@ class AnalystRetrievalAgent(BaseAgent):
 
         retrieve_filters: dict[str, Any] = {
             "ticker": edgar_filings.ticker.upper(),
-            "form": normalized_category,
         }
         rag_answer = ""
         raw_retrieve: dict[str, Any] = {}
@@ -180,14 +179,15 @@ class AnalystRetrievalAgent(BaseAgent):
         start_time = datetime.now(timezone.utc).isoformat()
         start_monotonic = time.monotonic()
         try:
-            result = await self._call_mcp_tool(server_url, tool_name, tool_input)
+            payload = self._prepare_tool_payload(tool_name, tool_input)
+            result = await self._call_mcp_tool(server_url, tool_name, payload)
             metadata = self._build_tool_metadata(
                 tool_name,
                 start_time,
                 start_monotonic,
                 metadata_factory=RetrievalAgentToolMetadata,
             )
-            return result, metadata
+            return self._extract_tool_result(result), metadata
         except Exception as exc:
             metadata = self._build_tool_metadata(
                 tool_name,
@@ -198,20 +198,40 @@ class AnalystRetrievalAgent(BaseAgent):
             )
             raise ToolExecutionError(str(exc), metadata) from exc
 
+    @staticmethod
+    def _prepare_tool_payload(tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
+        if tool_name in {"search_reports", "retrieve_report"}:
+            return {"input": tool_input}
+        return tool_input
+
+    @staticmethod
+    def _extract_tool_result(result: Any) -> Any:
+        structured = getattr(result, "structured_content", None)
+        if structured:
+            return structured
+        data = getattr(result, "data", None)
+        if data is not None:
+            return data
+        content = getattr(result, "content", None)
+        if isinstance(content, list) and len(content) == 1:
+            return content[0]
+        return result
+
     async def _upsert_filings(self, filings: list[FilingResult]) -> RetrievalAgentToolMetadata:
         start_time = datetime.now(timezone.utc).isoformat()
         start_monotonic = time.monotonic()
         warnings: list[str] = []
         for filing in filings:
+            metadata_dict = filing.metadata.model_dump()
             try:
                 await self._call_mcp_tool(
                     self._rag_mcp_url,
                     "upsert_edgar_report",
-                    {"href": filing.href, "metadata": filing.metadata},
+                    {"href": filing.href, "metadata": metadata_dict},
                 )
             except Exception as exc:
                 warnings.append(
-                    f"upsert failed for {filing.metadata.get('accession_number')}: {exc}"
+                    f"upsert failed for {metadata_dict.get('accession_number')}: {exc}"
                 )
         end_time = datetime.now(timezone.utc).isoformat()
         duration_ms = int((time.monotonic() - start_monotonic) * 1000)
