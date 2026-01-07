@@ -4,6 +4,10 @@ import asyncio
 import json
 import os
 import sys
+from typing import Tuple
+
+from dotenv import load_dotenv
+from openai import OpenAI
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 if REPO_ROOT not in sys.path:
@@ -11,14 +15,48 @@ if REPO_ROOT not in sys.path:
 
 from src.agents.analyst.retrieval_agent import AnalystRetrievalAgent
 
+load_dotenv()
+def get_para_from_query(query: str) -> tuple[str, str]:
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
+        raise RuntimeError("OPENAI_API_KEY is required to parse query parameters")
+
+    client = OpenAI(api_key=openai_api_key)
+    prompt = (
+        "Extract the company name and ticker symbol from the following user request. "
+        "Always respond with valid JSON in the form "
+        '{"company_name": "", "ticker": ""}. '
+        "If you cannot determine one of the values, return an empty string for it.\n\n"
+        f"Query: {query}"
+    )
+
+    response = client.chat.completions.create(
+        model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+        messages=[
+            {"role": "system", "content": "You are a structured data extraction assistant."},
+            {"role": "user", "content": prompt},
+        ]
+    )
+
+    payload = response.choices[0].message.content or ""
+    payload = payload.strip()
+    
+    try:
+        parsed = json.loads(payload)
+        return parsed.get("company_name", ""), parsed.get("ticker", "")
+    except json.JSONDecodeError:
+        return "", ""
+
 
 async def main() -> None:
     agent = AnalystRetrievalAgent()
+    query = "what are the core businesses of nvidia?"
+    company_name, ticker = get_para_from_query(query)
 
     result = await agent.process(
-        query="what are the core businesses of the company?",
-        ticker="NVDA",
-        company_name="NVIDIA",
+        query=query,
+        ticker=ticker,
+        company_name=company_name,
         top_k=3,
     )
 
