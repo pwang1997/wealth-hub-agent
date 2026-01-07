@@ -165,7 +165,7 @@ class AnalystRetrievalAgent(BaseAgent):
         Retrieval Agent does not require query reasoning.
         """
         pass
-    
+
     async def call_mcp_tool(self, tools: list[dict[str, Any]]) -> Any:  # type: ignore[override]
         raise NotImplementedError("call_mcp_tool is not used by the retrieval agent.")
 
