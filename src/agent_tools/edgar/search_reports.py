@@ -4,7 +4,8 @@ from typing import Any
 
 from fastapi.logger import logger
 
-from src.agent_tools.edgar import search_reports_impl, upsert_edgar_report_impl
+from src.agent_tools.edgar.search_reports_impl import search_reports_impl
+from src.agent_tools.edgar.upsert_edgar_report_impl import upsert_edgar_report_impl
 from src.models.rag_retrieve import SearchReportsInput, SearchReportsOutput
 
 collection_name = "edgar_filings"
