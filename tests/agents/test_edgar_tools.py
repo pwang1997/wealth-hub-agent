@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from src.agent_tools.edgar import search_reports
+from src.agent_tools.edgar import search_reports_impl, upsert_edgar_report_impl
 from src.models.rag_retrieve import SearchReportsInput
 
 
@@ -44,12 +44,12 @@ def test_search_reports_respects_limit(monkeypatch):
             return "0000000001"
 
         monkeypatch.setattr(
-            search_reports.EdgarClient,
+            search_reports_impl.EdgarClient,
             "get_cik_for_ticker",
             fake_get_cik_for_ticker,
         )
         monkeypatch.setattr(
-            search_reports.EdgarClient,
+            search_reports_impl.EdgarClient,
             "build_filing_href",
             lambda cik, acc, doc: f"https://edgar/{cik}/{acc}/{doc}",
         )
@@ -70,13 +70,13 @@ def test_search_reports_respects_limit(monkeypatch):
                 return self._response
 
         monkeypatch.setattr(
-            search_reports.aiohttp,
+            search_reports_impl.aiohttp,
             "ClientSession",
             DummyClientSession,
         )
 
         input_data = SearchReportsInput(ticker="AAPL", filing_category="10-K", limit=1)
-        output = await search_reports._search_reports_impl(input_data)
+        output = await search_reports_impl.search_reports_impl(input_data, "edgar_filings")
 
         assert len(output.filings) == 1
         filing = output.filings[0]
@@ -105,7 +105,7 @@ def test_upsert_edgar_report_skips_existing_accession(monkeypatch):
                 return dummy_collection
 
         monkeypatch.setattr(
-            search_reports.chroma_client,
+            upsert_edgar_report_impl.chroma_client,
             "get_client",
             lambda: DummyClient(),
         )
@@ -114,7 +114,7 @@ def test_upsert_edgar_report_skips_existing_accession(monkeypatch):
             pytest.fail("Content fetch should not be invoked for already ingested accession")
 
         monkeypatch.setattr(
-            search_reports.EdgarClient,
+            upsert_edgar_report_impl.EdgarClient,
             "get_filing_content",
             should_not_be_called,
         )
@@ -127,7 +127,7 @@ def test_upsert_edgar_report_skips_existing_accession(monkeypatch):
             "report_date": "2023-12-31",
         }
 
-        await search_reports._upsert_edgar_report_impl(
+        await upsert_edgar_report_impl.upsert_edgar_report_impl(
             href="https://example.com/ACC-EXIST",
             metadata=metadata,
             collection_name="edgar_filings",

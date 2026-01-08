@@ -41,14 +41,16 @@ class MCPManager:
             McpLocalServerConfig(
                 name="alpha_vantage",
                 script_path=os.path.join(
-                    self._repo_root, "src", "agent_tools", "alpha_vantage_mcp.py"
+                    self._repo_root, "src", "agent_tools", "alpha_vantage", "alpha_vantage_mcp.py"
                 ),
                 port_env_var="SEARCH_HTTP_PORT",
                 default_port=8100,
             ),
             McpLocalServerConfig(
                 name="finnhub",
-                script_path=os.path.join(self._repo_root, "src", "agent_tools", "finnhub_mcp.py"),
+                script_path=os.path.join(
+                    self._repo_root, "src", "agent_tools", "finnhub", "finnhub_mcp.py"
+                ),
                 port_env_var="FINNHUB_MCP_PORT",
                 default_port=8200,
             ),
