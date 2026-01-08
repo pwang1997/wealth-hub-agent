@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
-from src.agent_tools.rag import retrieve_report
+from src.agent_tools.rag import retrieve_report_impl
 from src.models.rag_retrieve import RAGRetrieveInput
 
 
@@ -37,15 +37,14 @@ def test_retrieve_report_normalizes_edgar_filters(monkeypatch):
     async def run():
         dummy_collection = DummyCollection()
 
-        async def fake_get_collection_or_raise(collection_name: str, *, cache=None):
-            return dummy_collection
+        class DummyChromaClient:
+            async def get_collection_or_raise(self, collection_name: str, *, cache=None):
+                return dummy_collection
 
+        monkeypatch.setattr(retrieve_report_impl, "chroma_client", DummyChromaClient())
         monkeypatch.setattr(
-            retrieve_report.chroma_client,
-            "get_collection_or_raise",
-            fake_get_collection_or_raise,
+            retrieve_report_impl, "resolve_embed_model", lambda name: DummyEmbedModel()
         )
-        monkeypatch.setattr(retrieve_report, "resolve_embed_model", lambda name: DummyEmbedModel())
 
         input_data = RAGRetrieveInput(
             query="earnings summary",
@@ -53,7 +52,7 @@ def test_retrieve_report_normalizes_edgar_filters(monkeypatch):
             filters={"ticker": "aapl", "form": "10-k"},
         )
 
-        result = await retrieve_report._retrieve_report(input_data)
+        result = await retrieve_report_impl._retrieve_report(input_data)
 
         assert dummy_collection.query_calls == [{"ticker": "AAPL", "form": "10-K"}]
         assert result["filters"] == {"ticker": "AAPL", "form": "10-K"}
