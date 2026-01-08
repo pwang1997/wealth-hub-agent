@@ -1,6 +1,3 @@
-from llama_index.core.prompts import PromptTemplate
-
-
 def get_system_prompt():
     return """
 <SYSTEM_PROMPT>
@@ -196,8 +193,7 @@ PRECISION, RELEVANCE, AND STRUCTURE DEFINE YOUR EXCELLENCE.
 
 
 def get_user_prompt():
-    return PromptTemplate.from_template(
-        """<USER_PROMPT>
+    return """<USER_PROMPT>
   Context:
   {context_str}
 
@@ -211,4 +207,10 @@ def get_user_prompt():
   - Base all output on the provided context and the system-level guidance; never hallucinate.
 
   Answer:"""
+
+
+def format_user_prompt(context_str: str, query_str: str) -> str:
+    return get_user_prompt().format(
+        context_str=context_str,
+        query_str=query_str,
     )

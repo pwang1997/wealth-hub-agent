@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
-from src.agents.analyst.retrieval_agent import AnalystRetrievalAgent
+from src.agents.retrieval.retrieval_agent import AnalystRetrievalAgent
 
 
 def test_retrieval_agent_process(monkeypatch):

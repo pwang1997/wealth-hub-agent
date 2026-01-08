@@ -13,7 +13,8 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", 
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from src.agents.analyst.retrieval_agent import AnalystRetrievalAgent
+from src.agents.retrieval.prompt import format_user_prompt, get_system_prompt
+from src.agents.retrieval.retrieval_agent import AnalystRetrievalAgent
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
@@ -59,26 +60,15 @@ def _build_answer_with_context(query: str, context: str) -> str:
 
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     client = OpenAI(api_key=openai_api_key)
-    user_prompt = f"""Context:
-{context or "No retrieval context was returned."}
-
-Question:
-{query}
-
-Instructions:
-- Answer based ONLY on the provided context.
-- If the context lacks relevant information, explain that additional data is needed.
-- Keep the response concise and factual.
-
-Answer:"""
+    user_prompt = format_user_prompt(
+        context_str=context or "No retrieval context was returned.",
+        query_str=query,
+    )
 
     response = client.chat.completions.create(
         model=model,
         messages=[
-            {
-                "role": "system",
-                "content": "You are a retrieval pipeline assistant. Use only the context provided to answer the user's question.",
-            },
+            {"role": "system", "content": get_system_prompt()},
             {"role": "user", "content": user_prompt},
         ],
     )
