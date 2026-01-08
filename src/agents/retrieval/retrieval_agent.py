@@ -4,7 +4,7 @@ import logging
 import os
 import time
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, override
 
 from pydantic import ValidationError
 
@@ -54,6 +54,7 @@ class AnalystRetrievalAgent(BaseAgent):
         self._rag_mcp_url = os.getenv("RAG_MCP_URL", "http://localhost:8300/mcp")
         self._alpha_vantage_url = os.getenv("ALPHA_VANTAGE_MCP_URL", "http://localhost:8100/mcp")
 
+    @override
     async def process(
         self,
         *,
@@ -197,15 +198,18 @@ class AnalystRetrievalAgent(BaseAgent):
             warnings=warnings,
         )
 
+    @override
     async def get_query_reasoning():
         """
         Retrieval Agent does not require query reasoning.
         """
         pass
 
+    @override
     async def call_mcp_tool(self, tools: list[dict[str, Any]]) -> Any:  # type: ignore[override]
         raise NotImplementedError("call_mcp_tool is not used by the retrieval agent.")
 
+    @override
     def get_system_prompt(self) -> str:  # type: ignore[override]
         from .prompt import get_system_prompt as _get_prompt
 
