@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import os
-import sys
 from typing import Any
 
 from diskcache import Cache
@@ -8,12 +9,6 @@ from fastapi.logger import logger
 from fastmcp import Client as MCPClient
 from fastmcp.client.transports import StreamableHttpTransport
 
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if REPO_ROOT not in sys.path:
-    sys.path.insert(0, REPO_ROOT)
-
-
-from src.factory.mcp_server_factory import McpServerFactory
 from src.utils.cache import cache_key
 from src.utils.logging_config import configure_logging
 
@@ -26,13 +21,8 @@ REMOTE_MCP_SERVER_URL = (
     f"https://mcp.alphavantage.co/mcp?apikey={os.getenv('ALPHA_VANTAGE_API_KEY')}"
 )
 
-mcp_server = McpServerFactory.create_mcp_server("AlphaVantageMcpServer")
-
 
 def _create_remote_client(server_url: str) -> MCPClient:
-    # Some MCP servers respond with compressed bodies that the underlying client may not
-    # be able to decode (e.g., `Content-Encoding: br`). Force an identity encoding so the
-    # response body is plain JSON.
     transport = StreamableHttpTransport(server_url, headers={"accept-encoding": "identity"})
     return MCPClient(transport)
 
@@ -64,13 +54,9 @@ def _serialize_mcp_tool(tool: Any) -> dict[str, Any]:
         return vars(tool)
 
 
-@mcp_server.tool()
-async def discover_remote_tools(server_url: str = REMOTE_MCP_SERVER_URL) -> list[dict[str, Any]]:
-    """Discover and return the tools exposed by a remote MCP server.
-
-    Returns a list of tool descriptors (typically containing `name`, `description`, and `inputSchema`)
-    that can be used by planning agents to mirror remote tool signatures.
-    """
+async def discover_remote_tools_impl(
+    server_url: str = REMOTE_MCP_SERVER_URL,
+) -> list[dict[str, Any]]:
     async with _create_remote_client(server_url) as client:
         tools = await client.list_tools()
     if tools is None:
@@ -78,12 +64,10 @@ async def discover_remote_tools(server_url: str = REMOTE_MCP_SERVER_URL) -> list
     return [_serialize_mcp_tool(tool) for tool in tools]
 
 
-@mcp_server.tool()
-async def news_sentiment(
+async def news_sentiment_impl(
     tickers: str = "",
     limit: int = 0,
 ) -> Any:
-    """Proxy to the remote Alpha Vantage `NEWS_SENTIMENT` tool."""
     tool_input: dict[str, Any] = {}
     if tickers:
         tool_input["tickers"] = tickers
@@ -93,16 +77,15 @@ async def news_sentiment(
     return await _call_remote_tool("NEWS_SENTIMENT", tool_input, server_url=REMOTE_MCP_SERVER_URL)
 
 
-@mcp_server.tool()
-async def company_overview(symbol: str) -> Any:
-    """Proxy to the remote Alpha Vantage `COMPANY_OVERVIEW` tool."""
+async def company_overview_impl(symbol: str) -> Any:
+    if not symbol:
+        raise ValueError("symbol is required")
     key = cache_key("AlphaVantage", "COMPANY_OVERVIEW", {"symbol": symbol})
 
     if key in cache:
         logger.info(f"Using cached company_overview response: {cache[key]}")
         return cache[key]
-    if not symbol:
-        raise ValueError("symbol is required")
+
     response = await _call_remote_tool(
         "COMPANY_OVERVIEW", {"symbol": symbol}, server_url=REMOTE_MCP_SERVER_URL
     )
@@ -111,10 +94,3 @@ async def company_overview(symbol: str) -> Any:
         cache.set(key, response, expire=60 * 60 * 24)
 
     return response
-
-
-if __name__ == "__main__":
-    # Run with streamable-http, support configuring host and port through environment variables to avoid conflicts
-    logger.info("Running Alpha Vantage Tool as search tool")
-    port = int(os.getenv("SEARCH_HTTP_PORT", "8100"))
-    McpServerFactory.run_default_mcp_server(mcp_server, port)
