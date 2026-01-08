@@ -48,7 +48,9 @@ class MCPManager:
             ),
             McpLocalServerConfig(
                 name="finnhub",
-                script_path=os.path.join(self._repo_root, "src", "agent_tools", "finnhub_mcp.py"),
+                script_path=os.path.join(
+                    self._repo_root, "src", "agent_tools", "finnhub", "finnhub_mcp.py"
+                ),
                 port_env_var="FINNHUB_MCP_PORT",
                 default_port=8200,
             ),
