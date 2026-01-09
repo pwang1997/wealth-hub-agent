@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Iterable
 import os
+from collections.abc import Iterable
 from typing import Literal
 
-from dotenv import load_dotenv
-from llama_index.core.embeddings import resolve_embed_model
-
 from chromadb import Collection
+from dotenv import load_dotenv
 from fastapi.logger import logger
+from llama_index.core.embeddings import resolve_embed_model
 
 from clients.chroma_client import ChromaClient
 from src.agent_tools.rag.context_builder import flatten_chroma_query_results
@@ -36,6 +35,8 @@ STATEMENT_KEYWORDS: dict[str, list[str]] = {
 }
 
 load_dotenv()
+
+
 def _match_keywords(text: str, keywords: Iterable[str]) -> bool:
     lower = text.lower()
     return any(keyword in lower for keyword in keywords)
@@ -71,7 +72,9 @@ async def extract_financial_statement_impl(
         collection_name="edgar_filings", cache=None
     )
 
-    query_text = f"{" or ".join(STATEMENT_KEYWORDS[statement_type])} for accession {accession_number}"
+    query_text = (
+        f"{' or '.join(STATEMENT_KEYWORDS[statement_type])} for accession {accession_number}"
+    )
     query_kwargs: dict[str, list[list[float]] | list[str]] = {}
     embed_model_name = os.getenv("RAG_EMBED_MODEL")
     if embed_model_name:
@@ -93,7 +96,7 @@ async def extract_financial_statement_impl(
         n_results=100,
         **query_kwargs,
     )
-    
+
     matches = flatten_chroma_query_results(raw_results)
     logger.info(
         "[extract_financial_statement] retrieved %d matches for accession %s",

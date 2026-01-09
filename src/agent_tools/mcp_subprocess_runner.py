@@ -5,7 +5,6 @@ import sys
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -13,7 +12,7 @@ class McpServerProcessSpec:
     name: str
     argv: list[str]
     env: dict[str, str] = field(default_factory=dict)
-    cwd: Optional[str] = None
+    cwd: str | None = None
 
 
 class McpSubprocessRunner:
@@ -21,8 +20,8 @@ class McpSubprocessRunner:
         self,
         specs: list[McpServerProcessSpec],
         *,
-        base_env: Optional[dict[str, str]] = None,
-        log_sink: Optional[callable] = None,
+        base_env: dict[str, str] | None = None,
+        log_sink: callable | None = None,
     ):
         self._specs = specs
         self._base_env = base_env or {}

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from fastapi.middleware import Middleware
 from fastmcp import FastMCP
 from starlette.middleware.cors import CORSMiddleware
@@ -7,7 +5,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 class McpServerFactory:
     @staticmethod
-    def create_mcp_server(mcp_name: str, middleware: Optional[list[Middleware]] = None) -> FastMCP:
+    def create_mcp_server(mcp_name: str, middleware: list[Middleware] | None = None) -> FastMCP:
         mcp = FastMCP(mcp_name, middleware=middleware)
         return mcp
 

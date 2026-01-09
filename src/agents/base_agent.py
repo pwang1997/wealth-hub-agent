@@ -3,8 +3,9 @@ from __future__ import annotations
 import os
 import time
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta, timezone
-from typing import Any, Callable
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from fastmcp import Client as MCPClient
 from fastmcp.client.transports import StreamableHttpTransport
@@ -69,7 +70,7 @@ class BaseAgent(ABC):
         metadata_factory: MetadataFactory | None = None,
         warnings: list[str] | None = None,
     ) -> Any:
-        end_time = datetime.now(timezone.utc).isoformat()
+        end_time = datetime.now(UTC).isoformat()
         duration_ms = int((time.monotonic() - start_monotonic) * 1000)
         builder = metadata_factory if metadata_factory is not None else lambda **kwargs: kwargs
         return builder(

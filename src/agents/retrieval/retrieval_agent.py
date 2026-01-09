@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, override
 
 from pydantic import ValidationError
@@ -218,7 +218,7 @@ class AnalystRetrievalAgent(BaseAgent):
     async def _call_tool_with_metadata(
         self, server_url: str, tool_name: str, tool_input: dict[str, Any]
     ) -> tuple[Any, RetrievalAgentToolMetadata]:
-        start_time = datetime.now(timezone.utc).isoformat()
+        start_time = datetime.now(UTC).isoformat()
         start_monotonic = time.monotonic()
         try:
             payload = self._prepare_tool_payload(tool_name, tool_input)
@@ -260,7 +260,7 @@ class AnalystRetrievalAgent(BaseAgent):
         return result
 
     async def _upsert_filings(self, filings: list[FilingResult]) -> RetrievalAgentToolMetadata:
-        start_time = datetime.now(timezone.utc).isoformat()
+        start_time = datetime.now(UTC).isoformat()
         start_monotonic = time.monotonic()
         warnings: list[str] = []
         for filing in filings:
@@ -273,7 +273,7 @@ class AnalystRetrievalAgent(BaseAgent):
                 )
             except Exception as exc:
                 warnings.append(f"upsert failed for {metadata_dict.get('accession_number')}: {exc}")
-        end_time = datetime.now(timezone.utc).isoformat()
+        end_time = datetime.now(UTC).isoformat()
         duration_ms = int((time.monotonic() - start_monotonic) * 1000)
         return RetrievalAgentToolMetadata(
             tool="upsert_edgar_report",

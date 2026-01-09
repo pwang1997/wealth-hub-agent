@@ -49,7 +49,7 @@ async def search_reports_impl(
     filings: list[FilingResult] = []
 
     for form, acc, doc, filing_date, report_date in zip(
-        forms, accessions, documents, filing_dates, report_dates
+        forms, accessions, documents, filing_dates, report_dates, strict=True
     ):
         if form != input_data.filing_category:
             continue

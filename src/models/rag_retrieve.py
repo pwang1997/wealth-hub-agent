@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from openai import BaseModel
 from pydantic import Field
@@ -27,7 +27,7 @@ class RAGRetrieveInput(BaseModel):
         ),
     )
     top_k: int = Field(5, ge=1, le=50, description="Number of chunks to retrieve (1-50).")
-    filters: Optional[dict[str, Any]] = Field(
+    filters: dict[str, Any] | None = Field(
         None,
         description="Chroma `where` filter (metadata constraints). expected one of the filters [ticker, form]",
     )

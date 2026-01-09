@@ -1,7 +1,6 @@
 import asyncio
 import os
 from functools import lru_cache
-from typing import Optional
 
 import chromadb
 from fastapi import APIRouter, HTTPException, UploadFile
@@ -32,7 +31,7 @@ async def upload_pdf(
     file: UploadFile,
     domain: str = "finance",
     corpus: str = "analyst_report",
-    company_name: Optional[str] = Form(None),
+    company_name: str | None = Form(None),
 ):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="File must be a PDF.")
@@ -106,7 +105,7 @@ async def chat(
     query: str,
     domain: str = "finance",
     corpus: str = "analyst_report",
-    company_name: Optional[str] = "",
+    company_name: str | None = "",
     top_k: int = 3,
 ):
     embed_model = resolve_embed_model(os.getenv("RAG_EMBED_MODEL") or "default")
