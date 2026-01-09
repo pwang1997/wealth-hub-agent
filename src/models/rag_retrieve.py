@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from openai import BaseModel
 from pydantic import Field
@@ -72,3 +72,11 @@ class SearchReportsOutput(BaseModel):
     cik: str
     filings: list[FilingResult]
     collection_name: str
+
+
+class FinancialStatementOutput(BaseModel):
+    accession_number: str
+    statement_type: Literal["income_statement", "balance_sheet", "cash_flow_statement"]
+    statement_text: str
+    chunks_returned: int
+    matches_examined: int

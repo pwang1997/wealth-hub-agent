@@ -7,7 +7,7 @@ from fastapi.logger import logger
 
 from src.agent_tools.rag.extract_financial_statements_impl import extract_financial_statement_impl
 from src.agent_tools.rag.retrieve_report_impl import _retrieve_report
-from src.models.rag_retrieve import RAGRetrieveInput
+from src.models.rag_retrieve import FinancialStatementOutput, RAGRetrieveInput
 
 
 def register_tools(mcp_server: Any, *, cache: Cache) -> None:
@@ -26,7 +26,17 @@ def register_tools(mcp_server: Any, *, cache: Cache) -> None:
     async def extract_financial_statement(
         accession_number: str,
         statement_type: Literal["income_statement", "balance_sheet", "cash_flow_statement"],
-    ):
+    ) -> FinancialStatementOutput:
+        """
+        Extracts a specific financial statement (income statement, balance sheet, or cash flow statement)
+        from a given SEC filing, identified by its accession number. This tool is useful for obtaining the
+        full text of a financial statement from a document already identified in the vector store.
+
+        Args:
+            accession_number: The accession number of the SEC filing.
+            statement_type: The type of financial statement to extract.
+        """
+
         logger.info(
             "[tool] extract_financial_statements invoked",
             extra={"accession_number": accession_number, "statement_type": statement_type},

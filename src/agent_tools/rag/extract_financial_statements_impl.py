@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import Iterable
 from typing import Literal
 
 from chromadb import Collection
@@ -12,6 +11,7 @@ from llama_index.core.embeddings import resolve_embed_model
 
 from clients.chroma_client import ChromaClient
 from src.agent_tools.rag.context_builder import flatten_chroma_query_results
+from src.models.rag_retrieve import FinancialStatementOutput
 
 chroma_client = ChromaClient()
 
@@ -37,11 +37,6 @@ STATEMENT_KEYWORDS: dict[str, list[str]] = {
 load_dotenv()
 
 
-def _match_keywords(text: str, keywords: Iterable[str]) -> bool:
-    lower = text.lower()
-    return any(keyword in lower for keyword in keywords)
-
-
 def _sort_key(match: dict[str, object | None]) -> object:
     metadata = match.get("metadata") or {}
     chunk_index = metadata.get("chunk_index")
@@ -53,13 +48,21 @@ def _sort_key(match: dict[str, object | None]) -> object:
 async def extract_financial_statement_impl(
     accession_number: str,
     statement_type: Literal["income_statement", "balance_sheet", "cash_flow_statement"],
-) -> dict[str, object | str]:
+) -> FinancialStatementOutput:
     """
     Extract fundamental financial statements from "edgar_filings" vector database.
 
     Args:
-        accession_number (str)
-        statement_type (Literal["income_statement", "balance_sheet", "cash_flow_statement"])
+        accession_number: The accession number of the filing.
+        statement_type: The type of financial statement to extract.
+
+    Returns:
+        FinancialStatementOutput containing the extracted statement and metadata, including:
+        - `accession_number`: The requested accession number.
+        - `statement_type`: The requested statement type.
+        - `statement_text`: The concatenated text of the financial statement.
+        - `chunks_returned`: The number of document chunks that form the statement.
+        - `matches_examined`: The total number of matches examined from the query.
     """
     logger.info(
         "[extract_financial_statement] start for accession %s statement %s",
@@ -130,10 +133,10 @@ async def extract_financial_statement_impl(
         },
     )
 
-    return {
-        "accession_number": accession_number,
-        "statement_type": statement_type,
-        "statement_text": statement_text.strip(),
-        "chunks_returned": len(matches),
-        "matches_examined": len(matches),
-    }
+    return FinancialStatementOutput(
+        accession_number=accession_number,
+        statement_type=statement_type,
+        statement_text=statement_text.strip(),
+        chunks_returned=len(matches),
+        matches_examined=len(matches),
+    )
