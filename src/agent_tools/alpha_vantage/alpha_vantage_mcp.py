@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Any
+from typing import Any, Literal
 
 from fastapi.logger import logger
 
@@ -12,6 +12,7 @@ from src.agent_tools.alpha_vantage.alpha_vantage_mcp_impl import (
     REMOTE_MCP_SERVER_URL,
     company_overview_impl,
     discover_remote_tools_impl,
+    fundamentals_impl,
     news_sentiment_impl,
 )
 from src.factory.mcp_server_factory import McpServerFactory
@@ -45,6 +46,14 @@ async def company_overview(symbol: str) -> Any:
     """Proxy to the remote Alpha Vantage `COMPANY_OVERVIEW` tool."""
 
     return await company_overview_impl(symbol)
+
+
+@mcp_server.tool()
+async def fundamentals(
+    symbol: str, statement_type: Literal["INCOMSE_STATEMENT", "BALANCE_SHEET", "CASH_FLOW"]
+) -> Any:
+    """Proxy to the remote Alpha Vantage fundamentals tool."""
+    return await fundamentals_impl(symbol, statement_type)
 
 
 if __name__ == "__main__":

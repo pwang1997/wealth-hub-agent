@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, Literal
 
 from diskcache import Cache
 from dotenv import load_dotenv
@@ -30,8 +30,12 @@ def _create_remote_client(server_url: str) -> MCPClient:
 async def _call_remote_tool(
     tool_name: str, tool_input: dict[str, Any], server_url: str = REMOTE_MCP_SERVER_URL
 ) -> Any:
+    logger.info("Calling Alpha Vantage MCP tool %s via %s", tool_name, server_url)
+    logger.debug("Tool input: %s", tool_input)
     async with _create_remote_client(server_url) as client:
-        return await client.call_tool(tool_name, tool_input)
+        response = await client.call_tool(tool_name, tool_input)
+    logger.debug("Received response for %s: %s", tool_name, response)
+    return response
 
 
 def _serialize_mcp_tool(tool: Any) -> dict[str, Any]:
@@ -57,8 +61,10 @@ def _serialize_mcp_tool(tool: Any) -> dict[str, Any]:
 async def discover_remote_tools_impl(
     server_url: str = REMOTE_MCP_SERVER_URL,
 ) -> list[dict[str, Any]]:
+    logger.info("Discovering Alpha Vantage MCP tools from %s", server_url)
     async with _create_remote_client(server_url) as client:
         tools = await client.list_tools()
+    logger.info("Discovered %d tools from Alpha Vantage MCP", len(tools) if tools else 0)
     if tools is None:
         return []
     return [_serialize_mcp_tool(tool) for tool in tools]
@@ -74,12 +80,14 @@ async def news_sentiment_impl(
     if limit:
         tool_input["limit"] = limit
 
+    logger.debug("Fetching news sentiment for tickers=%s limit=%s", tickers, limit)
     return await _call_remote_tool("NEWS_SENTIMENT", tool_input, server_url=REMOTE_MCP_SERVER_URL)
 
 
 async def company_overview_impl(symbol: str) -> Any:
     if not symbol:
         raise ValueError("symbol is required")
+    logger.debug("Fetching company overview for symbol=%s", symbol)
     key = cache_key("AlphaVantage", "COMPANY_OVERVIEW", {"symbol": symbol})
 
     if key in cache:
@@ -91,6 +99,28 @@ async def company_overview_impl(symbol: str) -> Any:
     )
     if response:
         logger.info(f"Caching company_overview response, key: {key}, response: {response}")
+        cache.set(key, response, expire=60 * 60 * 24)
+
+    return response
+
+
+async def fundamentals_impl(
+    symbol: str, fundamental_type: Literal["INCOMSE_STATEMENT", "BALANCE_SHEET", "CASH_FLOW"]
+) -> Any:
+    if not symbol:
+        raise ValueError("symbol is required")
+    logger.debug("Fetching %s for symbol=%s", fundamental_type, symbol)
+    key = cache_key("AlphaVantage", fundamental_type, {"symbol": symbol})
+
+    if key in cache:
+        logger.info(f"Using cached {fundamental_type} response: {cache[key]}")
+        return cache[key]
+
+    response = await _call_remote_tool(
+        fundamental_type, {"symbol": symbol}, server_url=REMOTE_MCP_SERVER_URL
+    )
+    if response:
+        logger.info(f"Caching {fundamental_type} response, key: {key}, response: {response}")
         cache.set(key, response, expire=60 * 60 * 24)
 
     return response
