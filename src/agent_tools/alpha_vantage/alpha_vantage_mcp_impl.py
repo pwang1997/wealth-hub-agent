@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Literal
+from typing import Any
 
 from diskcache import Cache
 from dotenv import load_dotenv
@@ -99,28 +99,6 @@ async def company_overview_impl(symbol: str) -> Any:
     )
     if response:
         logger.info(f"Caching company_overview response, key: {key}, response: {response}")
-        cache.set(key, response, expire=60 * 60 * 24)
-
-    return response
-
-
-async def fundamentals_impl(
-    symbol: str, fundamental_type: Literal["INCOMSE_STATEMENT", "BALANCE_SHEET", "CASH_FLOW"]
-) -> Any:
-    if not symbol:
-        raise ValueError("symbol is required")
-    logger.debug("Fetching %s for symbol=%s", fundamental_type, symbol)
-    key = cache_key("AlphaVantage", fundamental_type, {"symbol": symbol})
-
-    if key in cache:
-        logger.info(f"Using cached {fundamental_type} response: {cache[key]}")
-        return cache[key]
-
-    response = await _call_remote_tool(
-        fundamental_type, {"symbol": symbol}, server_url=REMOTE_MCP_SERVER_URL
-    )
-    if response:
-        logger.info(f"Caching {fundamental_type} response, key: {key}, response: {response}")
         cache.set(key, response, expire=60 * 60 * 24)
 
     return response
