@@ -44,7 +44,8 @@ def test_extract_financial_statement_preserves_chunk_index_order(monkeypatch):
             statement_type="income_statement",
         )
 
-        assert result["chunks_returned"] == 2
+        EXPECTED_CHUNKS_SIZE = 2
+        assert result["chunks_returned"] == EXPECTED_CHUNKS_SIZE
         assert result["statement_text"] == "first chunk\nsecond chunk"
 
     asyncio.run(run())
