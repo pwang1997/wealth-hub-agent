@@ -4,6 +4,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 
@@ -21,7 +22,7 @@ class McpSubprocessRunner:
         specs: list[McpServerProcessSpec],
         *,
         base_env: dict[str, str] | None = None,
-        log_sink: callable | None = None,
+        log_sink: Callable[[str, str, str], None] | None = None,
     ):
         self._specs = specs
         self._base_env = base_env or {}
