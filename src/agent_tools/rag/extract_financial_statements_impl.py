@@ -97,7 +97,7 @@ async def extract_financial_statement_impl(
         **query_kwargs,
     )
 
-    matches = flatten_chroma_query_results(raw_results)
+    matches = sorted(flatten_chroma_query_results(raw_results), key=_sort_key)
     logger.info(
         "[extract_financial_statement] retrieved %d matches for accession %s",
         len(matches),
