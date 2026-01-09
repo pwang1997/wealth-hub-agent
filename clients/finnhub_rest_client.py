@@ -1,5 +1,3 @@
-from typing import Optional
-
 import finnhub
 import httpx
 
@@ -21,7 +19,7 @@ class FinnHubRestClient:
         return response.json()
 
     def get_company_news(
-        self, symbol: str, from_date: Optional[str] = None, to_date: Optional[str] = None
+        self, symbol: str, from_date: str | None = None, to_date: str | None = None
     ):
         """
         https://finnhub.io/docs/api/market-news
@@ -40,7 +38,7 @@ class FinnHubRestClient:
         return data
 
     async def get_company_news_async(
-        self, symbol: str, from_date: Optional[str] = None, to_date: Optional[str] = None
+        self, symbol: str, from_date: str | None = None, to_date: str | None = None
     ):
         """
         https://finnhub.io/docs/api/company-news
@@ -50,7 +48,7 @@ class FinnHubRestClient:
             {"symbol": symbol, "from": from_date, "to": to_date},
         )
 
-    def get_company_peer(self, symbol: str, grouping: Optional[str] = None):
+    def get_company_peer(self, symbol: str, grouping: str | None = None):
         """
         https://finnhub.io/docs/api/company-peers
         Docstring for get_company_peer
@@ -65,7 +63,7 @@ class FinnHubRestClient:
         print(data)
         return data
 
-    async def get_company_peer_async(self, symbol: str, grouping: Optional[str] = None):
+    async def get_company_peer_async(self, symbol: str, grouping: str | None = None):
         """
         https://finnhub.io/docs/api/company-peers
         """

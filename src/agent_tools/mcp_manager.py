@@ -1,7 +1,6 @@
 import os
 import sys
 from dataclasses import dataclass
-from typing import Optional
 
 from src.agent_tools.mcp_subprocess_runner import McpServerProcessSpec, McpSubprocessRunner
 
@@ -22,11 +21,11 @@ class MCPManager:
     def __init__(
         self,
         *,
-        llm: Optional[object] = None,
-        enabled: Optional[bool] = None,
+        llm: object | None = None,
+        enabled: bool | None = None,
         autostart: bool = True,
-        repo_root: Optional[str] = None,
-        servers: Optional[list[McpLocalServerConfig]] = None,
+        repo_root: str | None = None,
+        servers: list[McpLocalServerConfig] | None = None,
     ):
         self.llm = llm
 

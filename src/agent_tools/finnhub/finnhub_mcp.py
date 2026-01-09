@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Any, Optional
+from typing import Any
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 if REPO_ROOT not in sys.path:
@@ -18,14 +18,14 @@ mcp_server = McpServerFactory.create_mcp_server("FinnhubMcpServer")
 @mcp_server.tool()
 async def get_company_news(
     symbol: str,
-    from_date: Optional[str] = None,
-    to_date: Optional[str] = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
 ) -> Any:
     return await company_news_impl(symbol, from_date, to_date)
 
 
 @mcp_server.tool()
-async def get_company_peer(symbol: str, grouping: Optional[str] = None) -> Any:
+async def get_company_peer(symbol: str, grouping: str | None = None) -> Any:
     return await company_peer_impl(symbol, grouping)
 
 

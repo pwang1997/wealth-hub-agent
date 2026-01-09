@@ -42,7 +42,7 @@ cli = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py39"
+target-version = "py313"
 exclude = ["alembic/versions"]
 
 [tool.ruff.lint]
@@ -50,7 +50,7 @@ select = ["E","F","I","UP","B","SIM","PL","RUF"]
 ignore = ["E501", "PLR0913", "PLC0415", "E402", "PLR0915", "PLR0912"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.13"
 ignore_missing_imports = true
 warn_unused_ignores = true
 warn_redundant_casts = true

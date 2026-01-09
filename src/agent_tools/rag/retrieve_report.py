@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from diskcache import Cache
+from fastapi.logger import logger
 
-from src.agent_tools.rag.retrieve_report_impl import _retrieve_report, chroma_client
-from src.models.rag_retrieve import RAGRetrieveInput
+from src.agent_tools.rag.extract_financial_statements_impl import extract_financial_statement_impl
+from src.agent_tools.rag.retrieve_report_impl import _retrieve_report
+from src.models.rag_retrieve import FinancialStatementOutput, RAGRetrieveInput
 
 
 def register_tools(mcp_server: Any, *, cache: Cache) -> None:
@@ -21,5 +23,22 @@ def register_tools(mcp_server: Any, *, cache: Cache) -> None:
         return await _retrieve_report(input)
 
     @mcp_server.tool()
-    async def list_collections() -> list[str]:
-        return await chroma_client.list_collection_names(cache=cache)
+    async def extract_financial_statement(
+        accession_number: str,
+        statement_type: Literal["income_statement", "balance_sheet", "cash_flow_statement"],
+    ) -> FinancialStatementOutput:
+        """
+        Extracts a specific financial statement (income statement, balance sheet, or cash flow statement)
+        from a given SEC filing, identified by its accession number. This tool is useful for obtaining the
+        full text of a financial statement from a document already identified in the vector store.
+
+        Args:
+            accession_number: The accession number of the SEC filing.
+            statement_type: The type of financial statement to extract.
+        """
+
+        logger.info(
+            "[tool] extract_financial_statements invoked",
+            extra={"accession_number": accession_number, "statement_type": statement_type},
+        )
+        return await extract_financial_statement_impl(accession_number, statement_type)

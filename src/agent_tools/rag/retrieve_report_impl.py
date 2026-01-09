@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from llama_index.core.embeddings import resolve_embed_model
@@ -92,6 +92,6 @@ async def _retrieve_report(input_data: RAGRetrieveInput) -> dict[str, Any]:
         "document_contains": input_data.document_contains,
         "matches": matches,
         "context": context,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
     return response

@@ -44,6 +44,7 @@ Dependencies are defined in `pyproject.toml`, but installation and local workflo
 - `make dev` – start the local development server / agent runner.
 - `make test` – run the full automated test suite (typically `pytest`).
 - `make lint` / `make format` – run linting and formatting tools configured in `pyproject.toml`.
+- Always run tests and related validations through `uv`-backed targets (for example `uv run pytest` or `uv run my_validation_tool`) rather than invoking the frameworks directly.
 
 Example `Makefile` wiring `uv` to Python 3.13:
 
