@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 
@@ -16,10 +17,20 @@ def flatten_chroma_query_results(results: dict[str, Any]) -> list[dict[str, Any]
     metadatas = (results or {}).get("metadatas") or []
     distances = (results or {}).get("distances") or []
 
-    doc_ids = ids[0] if ids else []
-    docs = documents[0] if documents else []
-    metas = metadatas[0] if metadatas else []
-    dists = distances[0] if distances else []
+    def _normalize(values: list[Any]) -> list[Any]:
+        if not isinstance(values, Sequence):
+            return []
+        if not values:
+            return []
+        first = values[0]
+        if isinstance(first, Sequence) and not isinstance(first, (str, bytes, dict)):
+            return list(first)
+        return list(values)
+
+    doc_ids = _normalize(ids)
+    docs = _normalize(documents)
+    metas = _normalize(metadatas)
+    dists = _normalize(distances)
 
     matches: list[dict[str, Any]] = []
     for idx in range(max(len(doc_ids), len(docs), len(metas), len(dists))):
