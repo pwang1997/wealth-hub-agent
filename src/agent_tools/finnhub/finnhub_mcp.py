@@ -12,7 +12,7 @@ from src.agent_tools.finnhub.finnhub_mcp_impl import (
     get_financial_reports_impl,
 )
 from src.factory.mcp_server_factory import McpServerFactory
-from src.models.income_statement import IncomeStatementDTO
+from src.models.fundamentals import FundamentalDTO
 
 mcp_server = McpServerFactory.create_mcp_server("FinnhubMcpServer")
 
@@ -37,7 +37,7 @@ async def get_financial_reports(
     access_number: str | None,
     from_date: str | None,
     freq: Literal["annual", "quarterly"] = "annual",
-) -> IncomeStatementDTO:
+) -> FundamentalDTO:
     return await get_financial_reports_impl(symbol, access_number, from_date, freq)
 
 

@@ -43,7 +43,7 @@ class FinancialReportEntry(BaseModel):
     end_date: str = Field(..., alias="endDate")
     filed_date: str = Field(..., alias="filedDate")
     accepted_date: str = Field(..., alias="acceptedDate")
-    report: FinancialReportSection
+    report: FinancialReportSection = Field(..., alias="report")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -52,8 +52,18 @@ class FinancialReportEntry(BaseModel):
         """Return the income statement portion (ic) for this period."""
         return self.report.ic
 
+    @property
+    def balance_sheet(self) -> list[FinancialReportLineItem]:
+        """Return the balance sheet portion (bs) for this period."""
+        return self.report.bs
 
-class IncomeStatementDTO(BaseModel):
+    @property
+    def cash_flow(self) -> list[FinancialReportLineItem]:
+        """Return the cash flow portion (cf) for this period."""
+        return self.report.cf
+
+
+class FundamentalDTO(BaseModel):
     """Pydantic model representing the Finnish MCP response used in the mock data."""
 
     cik: str
