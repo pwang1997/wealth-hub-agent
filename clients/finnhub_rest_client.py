@@ -1,3 +1,5 @@
+from typing import Literal
+
 import finnhub
 import httpx
 
@@ -71,3 +73,20 @@ class FinnHubRestClient:
         if grouping:
             params["grouping"] = grouping
         return await self._get("stock/peers", params)
+
+    async def get_financial_reports(
+        self,
+        symbol: str,
+        freq: Literal["annual", "quarterly"],
+        from_date: str,
+        to_date: str,
+        access_number: str | None,
+    ):
+        params = {
+            "symbol": symbol,
+            "freq": freq,
+            "from": from_date,
+            "to": to_date,
+            "access_number": access_number,
+        }
+        return await self._get("stock/financials-reported", params)

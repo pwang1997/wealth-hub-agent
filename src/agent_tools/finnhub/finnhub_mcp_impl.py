@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime
-from typing import Any
+from datetime import UTC, datetime
+from typing import Any, Literal
 
 from diskcache import Cache
 from dotenv import load_dotenv
 from fastapi.logger import logger
 
 from clients.finnhub_rest_client import FinnHubRestClient
+from src.models.income_statement import IncomeStatementDTO
 from src.utils.cache import cache_key
 from src.utils.logging_config import configure_logging
 
@@ -81,4 +82,21 @@ async def company_peer_impl(symbol: str, grouping: str | None = None) -> Any:
     client = _get_client()
     data = await client.get_company_peer_async(symbol, grouping)
     cache.set(key, data, expire=60 * 60 * 24)
+    return data
+
+
+async def get_financial_reports_impl(
+    symbol: str,
+    access_number: str | None,
+    from_date: str | None,
+    freq: Literal["annual", "quarterly"] = "annual",
+) -> IncomeStatementDTO:
+    if not symbol:
+        raise ValueError("symbol is required")
+
+    client = _get_client()
+    now = datetime.now(UTC).isoformat()
+    data = await client.get_financial_reports(
+        symbol=symbol, freq=freq, from_date=from_date, to_date=now, access_number=access_number
+    )
     return data
