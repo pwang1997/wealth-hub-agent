@@ -8,8 +8,10 @@ from typing import Any, override
 
 from pydantic import ValidationError
 
+from src.models.fundamentals import FundamentalDTO
 from src.models.rag_retrieve import (
     FilingResult,
+    FinancialStatementOutput,
     RAGRetrieveInput,
     SearchReportsInput,
     SearchReportsOutput,
@@ -53,6 +55,7 @@ class AnalystRetrievalAgent(BaseAgent):
         )
         self._rag_mcp_url = os.getenv("RAG_MCP_URL", "http://localhost:8300/mcp")
         self._alpha_vantage_url = os.getenv("ALPHA_VANTAGE_MCP_URL", "http://localhost:8100/mcp")
+        self._finnhub_mcp_url = os.getenv("FINNHUB_MCP_URL", "http://localhost:8200/mcp")
 
     @override
     async def process(
@@ -184,6 +187,65 @@ class AnalystRetrievalAgent(BaseAgent):
             status = "partial"
             warnings.append(f"news_sentiment output invalid: {exc}")
 
+        financial_statement: FinancialStatementOutput | None = None
+        if edgar_filings.filings:
+            statement_payload = {
+                "accession_number": edgar_filings.filings[0].accession_number,
+                "statement_type": "income_statement",
+            }
+            try:
+                raw_statement, metadata.financial_statement = await self._call_tool_with_metadata(
+                    self._rag_mcp_url,
+                    "extract_financial_statement",
+                    statement_payload,
+                )
+                financial_statement = FinancialStatementOutput.model_validate(raw_statement)
+                logger.info(
+                    "extract_financial_statement completed",
+                    extra={
+                        "accession_number": statement_payload["accession_number"],
+                        "statement_type": statement_payload["statement_type"],
+                    },
+                )
+            except ToolExecutionError as exc:
+                metadata.financial_statement = exc.metadata
+                warnings.append(f"extract_financial_statement failed: {exc}")
+                status = "partial"
+            except ValidationError as exc:
+                status = "partial"
+                warnings.append(f"extract_financial_statement output invalid: {exc}")
+
+        financial_reports: FundamentalDTO | None = None
+        try:
+            reports_payload = {
+                "symbol": ticker.upper(),
+                "access_number": edgar_filings.filings[0].accession_number
+                if edgar_filings.filings
+                else None,
+                "from_date": None,
+                "freq": "annual",
+            }
+            raw_reports, metadata.financial_reports = await self._call_tool_with_metadata(
+                self._finnhub_mcp_url,
+                "get_financial_reports",
+                reports_payload,
+            )
+            financial_reports = FundamentalDTO.model_validate(raw_reports)
+            logger.info(
+                "get_financial_reports completed",
+                extra={
+                    "symbol": reports_payload["symbol"],
+                    "access_number": reports_payload["access_number"],
+                },
+            )
+        except ToolExecutionError as exc:
+            metadata.financial_reports = exc.metadata
+            warnings.append(f"get_financial_reports failed: {exc}")
+            status = "partial"
+        except ValidationError as exc:
+            status = "partial"
+            warnings.append(f"get_financial_reports output invalid: {exc}")
+
         if status == "success" and not edgar_filings.filings and not rag_answer:
             status = "partial"
             warnings.append("No filings or RAG context could be gathered.")
@@ -196,6 +258,8 @@ class AnalystRetrievalAgent(BaseAgent):
             market_news=news_items,
             metadata=metadata,
             warnings=warnings,
+            financial_statement=financial_statement,
+            financial_reports=financial_reports,
         )
 
     @override
@@ -204,10 +268,6 @@ class AnalystRetrievalAgent(BaseAgent):
         Retrieval Agent does not require query reasoning.
         """
         pass
-
-    @override
-    async def call_mcp_tool(self, tools: list[dict[str, Any]]) -> Any:  # type: ignore[override]
-        raise NotImplementedError("call_mcp_tool is not used by the retrieval agent.")
 
     @override
     def get_system_prompt(self) -> str:  # type: ignore[override]
@@ -222,7 +282,7 @@ class AnalystRetrievalAgent(BaseAgent):
         start_monotonic = time.monotonic()
         try:
             payload = self._prepare_tool_payload(tool_name, tool_input)
-            result = await self._call_mcp_tool(server_url, tool_name, payload)
+            result = await self.call_mcp_tool(server_url, tool_name, payload)
             metadata = self._build_tool_metadata(
                 tool_name,
                 start_time,
@@ -266,7 +326,7 @@ class AnalystRetrievalAgent(BaseAgent):
         for filing in filings:
             metadata_dict = filing.metadata.model_dump()
             try:
-                await self._call_mcp_tool(
+                await self.call_mcp_tool(
                     self._rag_mcp_url,
                     "upsert_edgar_report",
                     {"href": filing.href, "metadata": metadata_dict},
@@ -293,6 +353,8 @@ class AnalystRetrievalAgent(BaseAgent):
         market_news: list[MarketNewsSource],
         metadata: RetrievalAgentMetadata,
         warnings: list[str],
+        financial_statement: FinancialStatementOutput | None,
+        financial_reports: FundamentalDTO | None,
     ) -> RetrievalAgentOutput:
         metadata.warnings = warnings
         return RetrievalAgentOutput(
@@ -302,6 +364,8 @@ class AnalystRetrievalAgent(BaseAgent):
             edgar_filings=edgar_filings,
             market_news=market_news,
             metadata=metadata,
+            financial_statement=financial_statement,
+            financial_reports=financial_reports,
         )
 
     @staticmethod

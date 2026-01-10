@@ -40,10 +40,6 @@ class BaseAgent(ABC):
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
-    async def call_mcp_tool(self, tools: list[dict]):
-        raise NotImplementedError("Subclasses must implement this method")
-
-    @abstractmethod
     async def get_query_reasoning():
         raise NotImplementedError("Subclasses must implement this method")
 
@@ -51,7 +47,7 @@ class BaseAgent(ABC):
         raise NotImplementedError("Subclasses must implement this method")
 
     @staticmethod
-    async def _call_mcp_tool(
+    async def call_mcp_tool(
         server_url: str,
         tool_name: str,
         tool_input: dict[str, Any],

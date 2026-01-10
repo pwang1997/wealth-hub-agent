@@ -54,9 +54,19 @@ def test_retrieval_agent_process(monkeypatch):
                         "time_published": "2024-11-20T00:00:00Z",
                     }
                 ]
+            if tool_name == "extract_financial_statement":
+                return {
+                    "accession_number": "ACC-1",
+                    "statement_type": "income_statement",
+                    "statement_text": "net income detail",
+                    "chunks_returned": 1,
+                    "matches_examined": 1,
+                }
+            if tool_name == "get_financial_reports":
+                return {"cik": "0001234", "symbol": "NVDA", "data": []}
             raise AssertionError(tool_name)
 
-        monkeypatch.setattr(AnalystRetrievalAgent, "_call_mcp_tool", fake_call)
+        monkeypatch.setattr(AnalystRetrievalAgent, "call_mcp_tool", fake_call)
 
         result = await agent.process(
             query="What did NVIDIA disclose?",
@@ -72,6 +82,10 @@ def test_retrieval_agent_process(monkeypatch):
         assert len(upsert_calls) == 1
         assert result.market_news[0].title == "Tech headline"
         assert result.metadata.warnings == []
+        assert result.financial_statement is not None
+        assert result.financial_statement.statement_type == "income_statement"
+        assert result.financial_reports is not None
+        assert result.financial_reports.symbol == "NVDA"
 
     asyncio.run(run())
 
@@ -89,9 +103,11 @@ def test_retrieval_agent_handles_retriable_error(monkeypatch):
                 return {"context": "partial_context"}
             if tool_name == "news_sentiment":
                 return []
+            if tool_name == "get_financial_reports":
+                return {"cik": "000999", "symbol": "COMP", "data": []}
             raise AssertionError(tool_name)
 
-        monkeypatch.setattr(AnalystRetrievalAgent, "_call_mcp_tool", fake_call)
+        monkeypatch.setattr(AnalystRetrievalAgent, "call_mcp_tool", fake_call)
 
         result = await agent.process(
             query="What did Company X say?",
