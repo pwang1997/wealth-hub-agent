@@ -43,7 +43,8 @@ class BaseAgent(ABC):
     async def get_query_reasoning():
         raise NotImplementedError("Subclasses must implement this method")
 
-    def format_output(self):
+    @abstractmethod
+    def format_output(self, **args):
         raise NotImplementedError("Subclasses must implement this method")
 
     @staticmethod

@@ -83,7 +83,6 @@ class SearchReportsNode(RetrievalPipelineNode):
                 filing_category=state.filing_category,
                 limit=state.search_limit,
             ).model_dump()
-
             raw_search, metadata = await agent._call_tool_with_metadata(
                 McpConfig.rag_mcp_url, "search_reports", payload
             )

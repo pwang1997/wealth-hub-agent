@@ -5,19 +5,9 @@ import time
 from datetime import UTC, datetime
 from typing import Any, override
 
-from src.models.fundamentals import FundamentalDTO
-from src.models.rag_retrieve import FilingResult, FinancialStatementOutput, SearchReportsOutput
-from src.models.retrieval_agent import (
-    MarketNewsSource,
-    RetrievalAgentMetadata,
-    RetrievalAgentOutput,
-    RetrievalAgentToolMetadata,
-)
-from src.utils.mcp_config import McpConfig
-
-from ..base_agent import BaseAgent
-from .exceptions import ToolExecutionError
-from .pipeline import (
+from src.agents.base_agent import BaseAgent
+from src.agents.retrieval.exceptions import ToolExecutionError
+from src.agents.retrieval.pipeline import (
     ExtractFinancialStatementNode,
     GetFinancialReportsNode,
     NewsSentimentNode,
@@ -27,6 +17,15 @@ from .pipeline import (
     SearchReportsNode,
     UpsertFilingsNode,
 )
+from src.models.fundamentals import FundamentalDTO
+from src.models.rag_retrieve import FilingResult, FinancialStatementOutput, SearchReportsOutput
+from src.models.retrieval_agent import (
+    MarketNewsSource,
+    RetrievalAgentMetadata,
+    RetrievalAgentOutput,
+    RetrievalAgentToolMetadata,
+)
+from src.utils.mcp_config import McpConfig
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +89,7 @@ class AnalystRetrievalAgent(BaseAgent):
             state.status = "partial"
             state.warnings.append("No filings or RAG context could be gathered.")
 
-        return self._build_output(
+        return self.format_output(
             query=query,
             status=state.status,
             answer=state.rag_answer,
@@ -183,9 +182,9 @@ class AnalystRetrievalAgent(BaseAgent):
             warnings=warnings,
         )
 
-    def _build_output(
+    @override
+    def format_output(
         self,
-        *,
         query: str,
         status: str,
         answer: str,
