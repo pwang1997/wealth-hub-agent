@@ -102,13 +102,6 @@ class AnalystRetrievalAgent(BaseAgent):
         )
 
     @override
-    async def get_query_reasoning():
-        """
-        Retrieval Agent does not require query reasoning.
-        """
-        pass
-
-    @override
     def get_system_prompt(self) -> str:  # type: ignore[override]
         from .prompt import get_system_prompt as _get_prompt
 

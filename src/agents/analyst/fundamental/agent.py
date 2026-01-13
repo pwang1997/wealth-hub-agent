@@ -73,7 +73,3 @@ class FundamentalAnalystAgent(BaseAgent):
     @override
     def get_system_prompt(self):
         return get_system_prompt()
-
-    @override
-    async def get_query_reasoning(self):
-        return ""
