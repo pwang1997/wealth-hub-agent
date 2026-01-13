@@ -3,16 +3,13 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from typing import Generic, TypeVar
 
 from src.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
-TState = TypeVar("TState")
 
-
-class BasePipelineNode(ABC, Generic[TState]):
+class BasePipelineNode[TState](ABC):
     """
     Abstract base class for a single step (node) in an agent's pipeline.
     """
@@ -25,7 +22,7 @@ class BasePipelineNode(ABC, Generic[TState]):
         ...
 
 
-class BasePipeline(Generic[TState]):
+class BasePipeline[TState]:
     """
     Orchestrator that executes a sequence of pipeline nodes.
     """

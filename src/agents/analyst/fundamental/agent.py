@@ -1,15 +1,16 @@
 import logging
 from typing import override
 
-from src.agents.analyst.pipeline import (
+from src.agents.base_agent import BaseAgent
+from src.models.fundamental_analyst import FundamentalAnalystOutput
+from src.models.retrieval_agent import RetrievalAgentOutput
+
+from .pipeline import (
     AnalyzeWithLLMNode,
     CalculateMetricsNode,
     FundamentalAnalystPipeline,
     FundamentalAnalystPipelineState,
 )
-from src.agents.base_agent import BaseAgent
-from src.models.fundamental_analyst import FundamentalAnalystOutput
-from src.models.retrieval_agent import RetrievalAgentOutput
 
 logger = logging.getLogger(__name__)
 

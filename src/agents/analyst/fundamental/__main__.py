@@ -11,11 +11,11 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 # Ensure the project root is in sys.path
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from src.agents.analyst.fundamental_analyst_agent import FundamentalAnalystAgent
+from src.agents.analyst.fundamental.agent import FundamentalAnalystAgent
 from src.agents.retrieval.retrieval_agent import AnalystRetrievalAgent
 from src.models.fundamental_analyst import FundamentalAnalystOutput
 

@@ -3,17 +3,17 @@ from __future__ import annotations
 import json
 import logging
 import os
-from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 from openai import OpenAI
 
-from src.agents.analyst.prompt import format_user_prompt, get_system_prompt
 from src.agents.base_agent import BaseAgent
 from src.agents.base_pipeline import BasePipeline, BasePipelineNode
 from src.models.fundamental_analyst import FundamentalAnalystOutput
-from src.models.fundamentals import FinancialReportLineItem, FundamentalDTO
+from src.models.fundamentals import FinancialReportLineItem
 from src.models.retrieval_agent import RetrievalAgentOutput
+
+from .prompt import format_user_prompt, get_system_prompt
 
 logger = logging.getLogger(__name__)
 
