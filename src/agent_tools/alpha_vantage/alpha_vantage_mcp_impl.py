@@ -104,7 +104,7 @@ async def news_sentiment_impl(
     response = NewsSentimentResponse(
         sentiment_score_definition=data.get("sentiment_score_definition", ""),
         relevance_score_definition=data.get("relevance_score_definition", ""),
-        news=data.get("feed", []),
+        feed=data.get("feed", []),
     )
     return response
 

@@ -35,7 +35,7 @@ async def discover_remote_tools(server_url: str = REMOTE_MCP_SERVER_URL) -> list
 
 @mcp_server.tool()
 async def news_sentiment(
-    tickers: str = "",
+    tickers: str = "NVDA",
     limit: int = 10,
     time_from: str = since_last_week(),
 ) -> NewsSentimentResponse:

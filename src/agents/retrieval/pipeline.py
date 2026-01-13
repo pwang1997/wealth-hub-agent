@@ -9,13 +9,14 @@ from pydantic import ValidationError
 from src.agents.base_agent import BaseAgent
 from src.agents.base_pipeline import BasePipeline, BasePipelineNode
 from src.models.fundamentals import FundamentalDTO
+from src.models.news_sentiments import NewsSentiment
 from src.models.rag_retrieve import (
     FinancialStatementOutput,
     RAGRetrieveInput,
     SearchReportsInput,
     SearchReportsOutput,
 )
-from src.models.retrieval_agent import MarketNewsSource, RetrievalAgentMetadata
+from src.models.retrieval_agent import RetrievalAgentMetadata
 from src.utils.mcp_config import McpConfig
 
 from .exceptions import ToolExecutionError
@@ -36,7 +37,7 @@ class RetrievalPipelineState:
     status: str = "success"
     metadata: RetrievalAgentMetadata = field(default_factory=RetrievalAgentMetadata)
     warnings: list[str] = field(default_factory=list)
-    news_items: list[MarketNewsSource] = field(default_factory=list)
+    news_items: list[NewsSentiment] = field(default_factory=list)
     rag_answer: str = ""
     financial_statement: FinancialStatementOutput | None = None
     financial_reports: FundamentalDTO | None = None
@@ -167,7 +168,7 @@ class NewsSentimentNode(RetrievalPipelineNode):
             normalized_news = agent._normalize_news_response(raw_news)
             for index, entry in enumerate(normalized_news):
                 try:
-                    state.news_items.append(MarketNewsSource.model_validate(entry))
+                    state.news_items.append(NewsSentiment.model_validate(entry))
                 except ValidationError as exc:
                     metadata.warnings.append(f"news entry {index} invalid: {exc}")
             if metadata.warnings:
