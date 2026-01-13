@@ -24,6 +24,8 @@ class FundamentalAnalystPipelineState:
     metrics_summary: str = ""
     analysis: FundamentalAnalystOutput | None = None
     citations: list[str] = field(default_factory=list)
+    internal_thought: str = ""
+    objectives: str = ""
 
 
 class FundamentalAnalystPipelineNode(BasePipelineNode[FundamentalAnalystPipelineState]):
@@ -32,6 +34,52 @@ class FundamentalAnalystPipelineNode(BasePipelineNode[FundamentalAnalystPipeline
 
 class FundamentalAnalystPipeline(BasePipeline[FundamentalAnalystPipelineState]):
     """Orchestrator for fundamental analysis."""
+
+
+class ReasoningNode(FundamentalAnalystPipelineNode):
+    async def run(self, agent: BaseAgent, state: FundamentalAnalystPipelineState) -> None:
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if not openai_api_key:
+            state.reasoning = "Skipping reasoning: OPENAI_API_KEY not found."
+            return
+
+        client = OpenAI(api_key=openai_api_key)
+        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+        prompt = (
+            f"You are {agent.agent_name}. {agent.role_description}\n"
+            f"User Query: {state.retrieval_output.query}\n"
+            "Identify your specific responsibilities and extract the key objectives for this analysis.\n"
+            "Use the following format:\n"
+            "<thought>\n[Your internal chain of thought about the query and the agent's role]\n</thought>\n"
+            "<objectives>\n[Concise objectives for the rest of the pipeline]\n</objectives>"
+        )
+
+        response = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        content = response.choices[0].message.content or ""
+
+        # Simple tag parser
+        def extract_tag(text: str, tag: str) -> str:
+            start_tag = f"<{tag}>"
+            end_tag = f"</{tag}>"
+            try:
+                start = text.index(start_tag) + len(start_tag)
+                end = text.index(end_tag)
+                return text[start:end].strip()
+            except ValueError:
+                return ""
+
+        state.internal_thought = extract_tag(content, "thought")
+        state.objectives = extract_tag(content, "objectives")
+
+        # Fallback if tags are missing
+        if not state.objectives and content:
+            state.objectives = content
+
+        logger.info(f"ReasoningNode completed. Objectives: {state.objectives[:100]}...")
 
 
 class CalculateMetricsNode(FundamentalAnalystPipelineNode):
@@ -123,7 +171,11 @@ class AnalyzeWithLLMNode(FundamentalAnalystPipelineNode):
 
         system_prompt = get_system_prompt()
         user_prompt = format_user_prompt(
-            state.retrieval_output.query, state.metrics_summary, company_name, ticker
+            state.retrieval_output.query,
+            state.metrics_summary,
+            company_name,
+            ticker,
+            state.objectives,
         )
 
         response = client.chat.completions.create(

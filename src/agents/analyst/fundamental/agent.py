@@ -11,6 +11,7 @@ from .pipeline import (
     CalculateMetricsNode,
     FundamentalAnalystPipeline,
     FundamentalAnalystPipelineState,
+    ReasoningNode,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ class FundamentalAnalystAgent(BaseAgent):
         state = FundamentalAnalystPipelineState(retrieval_output=retrieval_output)
         pipeline = FundamentalAnalystPipeline(
             nodes=[
+                ReasoningNode(),
                 CalculateMetricsNode(),
                 AnalyzeWithLLMNode(),
             ]
@@ -58,16 +60,19 @@ class FundamentalAnalystAgent(BaseAgent):
                 citations=[],
             )
 
-        return self.format_output(analysis=state.analysis, citations=state.citations)
+        return self.format_output(
+            analysis=state.analysis, citations=state.citations, reasoning=state.objectives
+        )
 
     @override
     def format_output(
-        self, analysis: FundamentalAnalystOutput, citations: list[str]
+        self, analysis: FundamentalAnalystOutput, citations: list[str], reasoning: str = ""
     ) -> FundamentalAnalystOutput:
         """
-        Finalize the FundamentalAnalystOutput with additional data like citations.
+        Finalize the FundamentalAnalystOutput with additional data like citations and reasoning.
         """
         analysis.citations = citations
+        analysis.reasoning = reasoning
         return analysis
 
     @override

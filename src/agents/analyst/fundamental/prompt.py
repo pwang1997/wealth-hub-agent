@@ -25,12 +25,18 @@ def get_system_prompt() -> str:
     )
 
 
-def format_user_prompt(query: str, metrics_summary: str, company_name: str, ticker: str) -> str:
+def format_user_prompt(
+    query: str, metrics_summary: str, company_name: str, ticker: str, objectives: str = ""
+) -> str:
+    """
+    Format the user prompt for the Fundamental Analyst Agent.
+    """
+    obj_section = f"\nEXTRACTED OBJECTIVES:\n{objectives}\n" if objectives else ""
+
     return (
-        f"Analyze the fundamental health of {company_name} ({ticker}) based on the following metrics summary:\n\n"
-        f"User Query: {query}\n\n"
-        f"Calculated Metrics Summary:\n"
-        f"{metrics_summary}\n\n"
-        "Provide a detailed analysis including a health score, strengths, weaknesses, red flags, and a summary. "
-        "Use ONLY the JSON schema provided in the system prompt."
+        f"Analyze fundamentals for {company_name} ({ticker}).\n"
+        f"USER QUERY: {query}\n"
+        f"{obj_section}"
+        f"\nMETRICS SUMMARY:\n{metrics_summary}\n"
+        "Generate a structured FundamentalAnalystOutput."
     )

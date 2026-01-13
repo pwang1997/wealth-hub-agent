@@ -19,3 +19,4 @@ class FundamentalAnalystOutput(BaseModel):
     citations: list[str] = Field(
         default_factory=list, description="Accession numbers or links to EDGAR filings"
     )
+    reasoning: str | None = None
