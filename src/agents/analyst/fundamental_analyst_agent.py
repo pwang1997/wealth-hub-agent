@@ -153,16 +153,17 @@ class FundamentalAnalystAgent(BaseAgent):
         content = response.choices[0].message.content or "{}"
         try:
             parsed = json.loads(content)
-            # Ensure ticker is set
+            # Ensure ticker is set if LLM missed it or used a placeholder
             parsed["ticker"] = ticker
+            # Use Pydantic's model_validate for strict adherence
             return FundamentalAnalystOutput.model_validate(parsed)
-        except (json.JSONDecodeError, Exception) as exc:
-            logger.error(f"Failed to parse LLM response: {exc}")
+        except Exception as exc:
+            logger.error(f"Failed to validate LLM response against model: {exc}")
             # Fallback output
             return FundamentalAnalystOutput(
                 ticker=ticker,
                 health_score=0,
-                summary="Failed to generate detailed analysis due to LLM response error.",
+                summary=f"Failed to generate valid analysis: {exc}",
                 citations=[],
             )
 

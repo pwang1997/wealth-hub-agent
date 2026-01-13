@@ -6,11 +6,22 @@ def get_system_prompt() -> str:
         "- Be conservative and objective in your assessment.\n"
         "- Prefer tool-verified calculations provided in the context.\n"
         "- Identify clear trends: revenue growth, margin expansion/contraction, cash flow quality.\n"
-        "- Flag significant risks as 'Red Flags' (e.g., negative margins, high debt-to-equity, "
-        "operating cash flow significantly lower than net income).\n"
-        "- Assign a health score from 0 to 100, where 100 is excellent and 0 is distress.\n"
-        "- Cite accession numbers of the filings used for each pillar of analysis.\n"
-        "- Respond strictly in the requested structured format."
+        "- Flag significant risks as 'Red Flags'.\n\n"
+        "Constraint: You MUST respond strictly in the following JSON format:\n"
+        "{\n"
+        '  "ticker": "TICKER_SYMBOL",\n'
+        '  "health_score": number (0-100),\n'
+        '  "summary": "Overall assessment summary",\n'
+        '  "strengths": [\n'
+        '    { "name": "Title", "description": "Details", "impact": "positive" }\n'
+        "  ],\n"
+        '  "weaknesses": [\n'
+        '    { "name": "Title", "description": "Details", "impact": "negative" }\n'
+        "  ],\n"
+        '  "red_flags": [\n'
+        '    { "name": "Flag Title", "description": "Why it\'s a risk", "impact": "negative" }\n'
+        "  ]\n"
+        "}"
     )
 
 
@@ -21,5 +32,5 @@ def format_user_prompt(query: str, metrics_summary: str, company_name: str, tick
         f"Calculated Metrics Summary:\n"
         f"{metrics_summary}\n\n"
         "Provide a detailed analysis including a health score, strengths, weaknesses, red flags, and a summary. "
-        "Reference the filings used (accession numbers) in your citations."
+        "Use ONLY the JSON schema provided in the system prompt."
     )
