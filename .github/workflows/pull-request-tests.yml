@@ -25,5 +25,8 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install uv
 
+      - name: Clean install
+        run: make clean-install
+        
       - name: Install dependencies and run tests
         run: make test
