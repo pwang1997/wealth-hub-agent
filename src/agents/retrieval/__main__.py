@@ -15,6 +15,7 @@ if REPO_ROOT not in sys.path:
 
 from src.agents.retrieval.prompt import format_user_prompt, get_system_prompt
 from src.agents.retrieval.retrieval_agent import AnalystRetrievalAgent
+from src.models.news_sentiments import NewsSentiment
 from src.models.retrieval_agent import RetrievalAgentOutput
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -54,7 +55,9 @@ def get_para_from_query(query: str) -> tuple[str, str]:
         return "", ""
 
 
-def _build_answer_with_context(query: str, context: str) -> str:
+def _build_answer_with_context(
+    query: str, context: str, news_items: list[NewsSentiment] | None = None
+) -> str:
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
         raise RuntimeError("OPENAI_API_KEY is required to generate the final answer")
@@ -64,6 +67,7 @@ def _build_answer_with_context(query: str, context: str) -> str:
     user_prompt = format_user_prompt(
         context_str=context or "No retrieval context was returned.",
         query_str=query,
+        news_items=news_items,
     )
 
     response = client.chat.completions.create(
@@ -94,7 +98,7 @@ async def main() -> None:
 
     payload = result.model_dump()
     context_str = str(payload.get("answer") or "")
-    final_answer = _build_answer_with_context(query, context_str)
+    final_answer = _build_answer_with_context(query, context_str, result.market_news)
 
     logging.getLogger(__name__).info(
         "Final answer generated from context",

@@ -1,3 +1,6 @@
+from src.models.news_sentiments import NewsSentiment
+
+
 def get_system_prompt():
     return """
 <SYSTEM_PROMPT>
@@ -214,7 +217,15 @@ def get_user_prompt():
   Answer:"""
 
 
-def format_user_prompt(context_str: str, query_str: str) -> str:
+def format_user_prompt(
+    context_str: str, query_str: str, news_items: list[NewsSentiment] | None = None
+) -> str:
+    if news_items:
+        news_lines = ["\n### Recent Market News"]
+        for item in news_items:
+            news_lines.append(f"- {item.title} ({item.source}) - {item.overall_sentiment_label}")
+        context_str = f"{context_str}\n" + "\n".join(news_lines)
+
     return get_user_prompt().format(
         context_str=context_str,
         query_str=query_str,
