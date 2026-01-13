@@ -32,19 +32,15 @@ class BaseAgent(ABC):
         self.role_description = role_description
 
     @abstractmethod
-    async def process():
+    async def process(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
-    def get_system_prompt():
+    def get_system_prompt(self) -> str:
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
-    async def get_query_reasoning():
-        raise NotImplementedError("Subclasses must implement this method")
-
-    @abstractmethod
-    def format_output(self, **args):
+    def format_output(self, **args) -> Any:
         raise NotImplementedError("Subclasses must implement this method")
 
     @staticmethod
