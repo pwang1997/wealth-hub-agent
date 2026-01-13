@@ -1,6 +1,7 @@
 import logging
 from typing import override
 
+from src.agents.analyst.fundamental.prompt import get_system_prompt
 from src.agents.base_agent import BaseAgent
 from src.models.fundamental_analyst import FundamentalAnalystOutput
 from src.models.retrieval_agent import RetrievalAgentOutput
@@ -70,13 +71,9 @@ class FundamentalAnalystAgent(BaseAgent):
         return analysis
 
     @override
-    def call_mcp_tool(self, tool_name: str, parameters: dict):
-        pass
-
-    @override
     def get_system_prompt(self):
-        pass
+        return get_system_prompt()
 
     @override
-    async def get_query_reasoning():
-        pass
+    async def get_query_reasoning(self):
+        return ""

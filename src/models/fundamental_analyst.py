@@ -1,10 +1,12 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
 class FundamentalAnalysisSignal(BaseModel):
     name: str
     description: str
-    impact: str  # e.g., "positive", "negative", "neutral"
+    impact: Literal["positive", "negative", "neutral"]
 
 
 class FundamentalAnalystOutput(BaseModel):

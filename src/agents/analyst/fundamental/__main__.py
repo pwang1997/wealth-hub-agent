@@ -55,6 +55,7 @@ def get_para_from_query(query: str) -> tuple[str, str]:
         parsed = json.loads(payload)
         return parsed.get("company_name", ""), parsed.get("ticker", "")
     except json.JSONDecodeError:
+        logger.error(f"Failed to parse JSON from LLM response. Payload: '{payload}'")
         return "", ""
 
 
