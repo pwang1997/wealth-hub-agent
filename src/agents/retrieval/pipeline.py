@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
@@ -9,6 +8,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from src.agents.base_agent import BaseAgent
+from src.agents.base_pipeline import BasePipeline, BasePipelineNode
 from src.models.fundamentals import FundamentalDTO
 from src.models.rag_retrieve import (
     FinancialStatementOutput,
@@ -52,19 +52,12 @@ class RetrievalPipelineState:
         )
 
 
-class RetrievalPipelineNode(ABC):
-    @abstractmethod
-    async def run(self, agent: BaseAgent, state: RetrievalPipelineState) -> None: ...
+class RetrievalPipelineNode(BasePipelineNode[RetrievalPipelineState]):
+    """Base node for retrieval pipeline."""
 
 
-class RetrievalQueryPipeline:
-    def __init__(self, nodes: Iterable[RetrievalPipelineNode]) -> None:
-        self._nodes = list(nodes)
-
-    async def run(self, agent: BaseAgent, state: RetrievalPipelineState) -> RetrievalPipelineState:
-        for node in self._nodes:
-            await node.run(agent, state)
-        return state
+class RetrievalQueryPipeline(BasePipeline[RetrievalPipelineState]):
+    """Orchestrator for retrieval queries."""
 
 
 class SearchReportsNode(RetrievalPipelineNode):

@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
@@ -11,8 +10,9 @@ from openai import OpenAI
 
 from src.agents.analyst.prompt import format_user_prompt, get_system_prompt
 from src.agents.base_agent import BaseAgent
+from src.agents.base_pipeline import BasePipeline, BasePipelineNode
 from src.models.fundamental_analyst import FundamentalAnalystOutput
-from src.models.fundamentals import FinancialReportLineItem
+from src.models.fundamentals import FinancialReportLineItem, FundamentalDTO
 from src.models.retrieval_agent import RetrievalAgentOutput
 
 logger = logging.getLogger(__name__)
@@ -26,21 +26,12 @@ class FundamentalAnalystPipelineState:
     citations: list[str] = field(default_factory=list)
 
 
-class FundamentalAnalystPipelineNode(ABC):
-    @abstractmethod
-    async def run(self, agent: BaseAgent, state: FundamentalAnalystPipelineState) -> None: ...
+class FundamentalAnalystPipelineNode(BasePipelineNode[FundamentalAnalystPipelineState]):
+    """Base node for fundamental analyst pipeline."""
 
 
-class FundamentalAnalystPipeline:
-    def __init__(self, nodes: Iterable[FundamentalAnalystPipelineNode]) -> None:
-        self._nodes = list(nodes)
-
-    async def run(
-        self, agent: BaseAgent, state: FundamentalAnalystPipelineState
-    ) -> FundamentalAnalystPipelineState:
-        for node in self._nodes:
-            await node.run(agent, state)
-        return state
+class FundamentalAnalystPipeline(BasePipeline[FundamentalAnalystPipelineState]):
+    """Orchestrator for fundamental analysis."""
 
 
 class CalculateMetricsNode(FundamentalAnalystPipelineNode):
