@@ -27,16 +27,12 @@ class RetrievalAgentMetadata(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-class MarketNewsSource(NewsSentiment):
-    related_filings: list[str] = Field(default_factory=list)
-
-
 class RetrievalAgentOutput(BaseModel):
     query: str
     status: Literal["success", "partial", "failed"]
     answer: str
     edgar_filings: SearchReportsOutput
-    market_news: list[MarketNewsSource] = Field(default_factory=list)
+    market_news: list[NewsSentiment] = Field(default_factory=list)
     metadata: RetrievalAgentMetadata
     financial_statement: FinancialStatementOutput | None = None
     financial_reports: FundamentalDTO | None = None

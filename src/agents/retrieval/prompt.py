@@ -1,3 +1,6 @@
+from src.models.news_sentiments import NewsSentiment
+
+
 def get_system_prompt():
     return """
 <SYSTEM_PROMPT>
@@ -128,7 +131,7 @@ OUTPUT A SINGLE STRUCTURED OBJECT FOR THE DOWNSTREAM AGENT:
 - EDGAR_CONTEXT:
   - [LIST OF EMBEDDING IDS + SHORT DESCRIPTORS]
 - NEWS_CONTEXT:
-  - [LIST OF EMBEDDING IDS + SENTIMENT TAG]
+  - [LIST OF RELATED NEWS ITEMS]
 - POLICY_CONTEXT:
   - [LIST OF EMBEDDING IDS + FAVOURABLE / UNFAVOURABLE TAG]
 - RETRIEVAL_TIMESTAMP: <INTERNAL TIME>
@@ -165,7 +168,7 @@ EXPECTED OUTPUT (ABBREVIATED):
 - TICKER: NVDA
 - USER_INTENT: BUY
 - EDGAR_CONTEXT: [10-K_MD&A_2024, 10-Q_Q2_2025]
-- NEWS_CONTEXT: [EARNINGS_BEAT_POS, AI_DEMAND_POS]
+- NEWS_CONTEXT: [LIST OF RELATED NEWS ITEMS]
 - POLICY_CONTEXT: [CHIP_EXPORT_CONTROLS_NEG]
 - RETRIEVAL_TIMESTAMP: <TS>
 
@@ -214,7 +217,15 @@ def get_user_prompt():
   Answer:"""
 
 
-def format_user_prompt(context_str: str, query_str: str) -> str:
+def format_user_prompt(
+    context_str: str, query_str: str, news_items: list[NewsSentiment] | None = None
+) -> str:
+    if news_items:
+        news_lines = ["\n### Recent Market News"]
+        for item in news_items:
+            news_lines.append(f"- {item.title} ({item.source}) - {item.overall_sentiment_label}")
+        context_str = f"{context_str}\n" + "\n".join(news_lines)
+
     return get_user_prompt().format(
         context_str=context_str,
         query_str=query_str,

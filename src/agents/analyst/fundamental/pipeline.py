@@ -142,9 +142,18 @@ class CalculateMetricsNode(FundamentalAnalystPipelineNode):
 
         # Add extra context from RAG answer (prose from filing)
         if state.retrieval_output.answer:
-            state.metrics_summary += (
-                f"\n\nAdditional Context from Filings:\n{state.retrieval_output.answer}"
-            )
+            summary_lines.append("\n### Filings Context")
+            summary_lines.append(state.retrieval_output.answer)
+
+        # Add news sentiment context
+        if state.retrieval_output.market_news:
+            summary_lines.append("\n### Recent Market News")
+            for item in state.retrieval_output.market_news:
+                summary_lines.append(
+                    f"- {item.title} ({item.source}) - Sentiment: {item.overall_sentiment_label}"
+                )
+
+        state.metrics_summary = "\n".join(summary_lines)
 
         logger.info(
             f"CalculateMetricsNode completed for {state.retrieval_output.edgar_filings.ticker}"

@@ -18,9 +18,9 @@ from src.agents.retrieval.pipeline import (
     UpsertFilingsNode,
 )
 from src.models.fundamentals import FundamentalDTO
+from src.models.news_sentiments import NewsSentiment
 from src.models.rag_retrieve import FilingResult, FinancialStatementOutput, SearchReportsOutput
 from src.models.retrieval_agent import (
-    MarketNewsSource,
     RetrievalAgentMetadata,
     RetrievalAgentOutput,
     RetrievalAgentToolMetadata,
@@ -182,7 +182,7 @@ class AnalystRetrievalAgent(BaseAgent):
         status: str,
         answer: str,
         edgar_filings: SearchReportsOutput,
-        market_news: list[MarketNewsSource],
+        market_news: list[NewsSentiment],
         metadata: RetrievalAgentMetadata,
         warnings: list[str],
         financial_statement: FinancialStatementOutput | None,

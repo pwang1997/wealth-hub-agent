@@ -16,6 +16,8 @@ from src.agent_tools.alpha_vantage.alpha_vantage_mcp_impl import (
     news_sentiment_impl,
 )
 from src.factory.mcp_server_factory import McpServerFactory
+from src.models.news_sentiments import NewsSentimentResponse
+from src.utils.date_utils import since_last_week
 
 mcp_server = McpServerFactory.create_mcp_server("AlphaVantageMcpServer")
 
@@ -33,12 +35,13 @@ async def discover_remote_tools(server_url: str = REMOTE_MCP_SERVER_URL) -> list
 
 @mcp_server.tool()
 async def news_sentiment(
-    tickers: str = "",
-    limit: int = 0,
-) -> Any:
+    tickers: str = "NVDA",
+    limit: int = 10,
+    time_from: str = since_last_week(),
+) -> NewsSentimentResponse:
     """Proxy to the remote Alpha Vantage `NEWS_SENTIMENT` tool."""
 
-    return await news_sentiment_impl(tickers=tickers, limit=limit)
+    return await news_sentiment_impl(tickers=tickers, limit=limit, time_from=time_from)
 
 
 @mcp_server.tool()

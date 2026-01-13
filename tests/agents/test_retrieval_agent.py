@@ -47,11 +47,18 @@ def test_retrieval_agent_process(monkeypatch):
                         "source": "AlphaVantage",
                         "url": "https://news",
                         "summary": "News summary",
-                        "topics": "semi",
-                        "overall_sentiment": "0.7",
-                        "sentiment_label": "positive",
-                        "ticker_sentiment": ["NVDA:positive"],
-                        "time_published": "2024-11-20T00:00:00Z",
+                        "topics": [{"topic": "Technology", "relevance_score": "0.8"}],
+                        "overall_sentiment_score": "0.7",
+                        "overall_sentiment_label": "Bullish",
+                        "ticker_sentiment": [
+                            {
+                                "ticker": "NVDA",
+                                "relevance_score": "0.9",
+                                "ticker_sentiment_score": "0.7",
+                                "ticker_sentiment_label": "Bullish",
+                            }
+                        ],
+                        "time_published": "20241120T000000",
                     }
                 ]
             if tool_name == "extract_financial_statement":
