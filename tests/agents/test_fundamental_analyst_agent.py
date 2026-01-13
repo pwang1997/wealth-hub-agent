@@ -89,7 +89,7 @@ async def test_fundamental_analyst_agent_process(mock_retrieval_output):
     agent = FundamentalAnalystAgent()
 
     # Mock OpenAI
-    with patch("src.agents.analyst.fundamental_analyst_agent.OpenAI") as MockOpenAI:
+    with patch("src.agents.analyst.pipeline.OpenAI") as MockOpenAI:
         mock_client = MockOpenAI.return_value
         mock_response = MagicMock()
         mock_response.choices[0].message.content = json.dumps(
