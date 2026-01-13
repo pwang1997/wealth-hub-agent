@@ -13,3 +13,9 @@ class NewsSentiment(BaseModel):
     sentiment_label: str
     ticker_sentiment: list[str]
     time_published: str
+
+
+class NewsSentimentResponse(BaseModel):
+    sentiment_score_definition: str
+    relevance_score_definition: str
+    news: list[NewsSentiment]

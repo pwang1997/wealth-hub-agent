@@ -3,12 +3,14 @@ from __future__ import annotations
 import os
 from typing import Any, Literal
 
+import httpx
 from diskcache import Cache
 from dotenv import load_dotenv
 from fastapi.logger import logger
 from fastmcp import Client as MCPClient
 from fastmcp.client.transports import StreamableHttpTransport
 
+from src.models.news_sentiments import NewsSentimentResponse
 from src.utils.cache import cache_key
 from src.utils.logging_config import configure_logging
 
@@ -71,17 +73,40 @@ async def discover_remote_tools_impl(
 
 
 async def news_sentiment_impl(
-    tickers: str = "",
-    limit: int = 0,
-) -> Any:
-    tool_input: dict[str, Any] = {}
-    if tickers:
-        tool_input["tickers"] = tickers
-    if limit:
-        tool_input["limit"] = limit
+    tickers: str,
+    limit: int,
+    time_from: str,
+) -> NewsSentimentResponse:
+    api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
+    if not api_key:
+        raise ValueError("ALPHA_VANTAGE_API_KEY environment variable is not set")
 
-    logger.debug("Fetching news sentiment for tickers=%s limit=%s", tickers, limit)
-    return await _call_remote_tool("NEWS_SENTIMENT", tool_input, server_url=REMOTE_MCP_SERVER_URL)
+    params: dict[str, Any] = {
+        "function": "NEWS_SENTIMENT",
+        "apikey": api_key,
+        "tickers": tickers,
+        "limit": limit,
+        "time_from": time_from,
+    }
+    logger.debug(
+        "Fetching news sentiment via HTTP GET for tickers=%s limit=%s time_from=%s",
+        tickers,
+        limit,
+        time_from,
+    )
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get("https://www.alphavantage.co/query", params=params)
+        response.raise_for_status()
+        data = response.json()
+
+    logger.debug("Received news sentiment response: %s", data)
+    response = NewsSentimentResponse(
+        sentiment_score_definition=data.get("sentiment_score_definition", ""),
+        relevance_score_definition=data.get("relevance_score_definition", ""),
+        news=data.get("feed", []),
+    )
+    return response
 
 
 async def company_overview_impl(symbol: str) -> Any:
