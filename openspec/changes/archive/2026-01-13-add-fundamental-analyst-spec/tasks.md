@@ -6,4 +6,4 @@
 - [x] 1.5 Implement `src/agents/analyst/fundamental_analyst_agent.py` logic to process `AnalystRetrievalAgent` output and analyze fundamentals.
 
 ## 2. Approval
-- [ ] 2.1 Share the proposal with the team and collect approval for the new capability spec.
+- [x] 2.1 Share the proposal with the team and collect approval for the new capability spec.
