@@ -23,7 +23,7 @@ dependencies = [
   "chromadb>=1.4.0",
   "llama-index-vector-stores-chroma>=0.5.5",
   "bs4>=0.0.2",
-  "llama-index>=0.9.48",
+  "llama-index-core>=0.14.10",
 ]
 
 [project.optional-dependencies]
