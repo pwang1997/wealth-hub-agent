@@ -93,7 +93,6 @@ async def main() -> None:
     )
 
     payload = result.model_dump()
-    print(f"payload: {payload}\n")
     context_str = str(payload.get("answer") or "")
     final_answer = _build_answer_with_context(query, context_str)
 
