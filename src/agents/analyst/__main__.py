@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 
+import diskcache
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -17,7 +18,6 @@ if REPO_ROOT not in sys.path:
 from src.agents.analyst.fundamental_analyst_agent import FundamentalAnalystAgent
 from src.agents.retrieval.retrieval_agent import AnalystRetrievalAgent
 from src.models.fundamental_analyst import FundamentalAnalystOutput
-from src.models.retrieval_agent import RetrievalAgentOutput
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -72,18 +72,27 @@ async def main() -> None:
         extra={"query": query, "ticker": ticker, "company_name": company_name},
     )
 
-    # 3. Step 1: Retrieval
-    try:
-        retrieval_result: RetrievalAgentOutput = await retrieval_agent.process(
-            query=query,
-            ticker=ticker,
-            company_name=company_name,
-            top_k=5,
-        )
-        logger.info("Retrieval phase completed successfully")
-    except Exception as e:
-        logger.error(f"Retrieval phase failed: {e}")
-        return
+    # 3. Step 1: Retrieval (with caching)
+    cache_dir = os.path.join(REPO_ROOT, ".cache", "retrieval_agent")
+    with diskcache.Cache(cache_dir) as cache:
+        cache_key = f"{ticker}:{company_name}:{query}"
+        retrieval_result = cache.get(cache_key)
+
+        if retrieval_result:
+            logger.info("Retrieval result loaded from cache")
+        else:
+            try:
+                retrieval_result = await retrieval_agent.process(
+                    query=query,
+                    ticker=ticker,
+                    company_name=company_name,
+                    top_k=5,
+                )
+                cache.set(cache_key, retrieval_result)
+                logger.info("Retrieval phase completed and cached successfully")
+            except Exception as e:
+                logger.error(f"Retrieval phase failed: {e}")
+                return
 
     # 4. Step 2: Fundamental Analysis
     try:
