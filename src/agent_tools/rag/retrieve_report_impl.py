@@ -5,7 +5,7 @@ import os
 from datetime import UTC, datetime
 from typing import Any
 
-from llama_index.core.embeddings import resolve_embed_model
+from llama_index.core.embeddings.utils import resolve_embed_model
 
 from clients.chroma_client import ChromaClient
 from src.agent_tools.rag.context_builder import build_rag_context, flatten_chroma_query_results

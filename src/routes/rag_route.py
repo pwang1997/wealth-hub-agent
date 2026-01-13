@@ -6,7 +6,7 @@ import chromadb
 from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.params import Form
 from llama_cloud_services import LlamaParse
-from llama_index.core.embeddings import resolve_embed_model
+from llama_index.core.embeddings.utils import resolve_embed_model
 from llama_index.core.node_parser import SentenceSplitter
 from openai import OpenAI
 

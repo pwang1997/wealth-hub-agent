@@ -4,8 +4,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from .fundamentals import FundamentalDTO
 from .news_sentiments import NewsSentiment
-from .rag_retrieve import SearchReportsOutput
+from .rag_retrieve import FinancialStatementOutput, SearchReportsOutput
 
 
 class RetrievalAgentToolMetadata(BaseModel):
@@ -21,6 +22,8 @@ class RetrievalAgentMetadata(BaseModel):
     upsert: RetrievalAgentToolMetadata | None = None
     retrieve: RetrievalAgentToolMetadata | None = None
     news: RetrievalAgentToolMetadata | None = None
+    financial_statement: RetrievalAgentToolMetadata | None = None
+    financial_reports: RetrievalAgentToolMetadata | None = None
     warnings: list[str] = Field(default_factory=list)
 
 
@@ -35,3 +38,5 @@ class RetrievalAgentOutput(BaseModel):
     edgar_filings: SearchReportsOutput
     market_news: list[MarketNewsSource] = Field(default_factory=list)
     metadata: RetrievalAgentMetadata
+    financial_statement: FinancialStatementOutput | None = None
+    financial_reports: FundamentalDTO | None = None

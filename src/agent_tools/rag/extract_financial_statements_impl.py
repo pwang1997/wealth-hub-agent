@@ -7,7 +7,7 @@ from typing import Literal
 from chromadb import Collection
 from dotenv import load_dotenv
 from fastapi.logger import logger
-from llama_index.core.embeddings import resolve_embed_model
+from llama_index.core.embeddings.utils import resolve_embed_model
 
 from clients.chroma_client import ChromaClient
 from src.agent_tools.rag.context_builder import flatten_chroma_query_results

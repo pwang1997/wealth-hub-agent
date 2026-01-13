@@ -1,27 +1,31 @@
 from __future__ import annotations
 
 import logging
-import os
 import time
 from datetime import UTC, datetime
 from typing import Any, override
 
-from pydantic import ValidationError
-
-from src.models.rag_retrieve import (
-    FilingResult,
-    RAGRetrieveInput,
-    SearchReportsInput,
-    SearchReportsOutput,
+from src.agents.base_agent import BaseAgent
+from src.agents.retrieval.exceptions import ToolExecutionError
+from src.agents.retrieval.pipeline import (
+    ExtractFinancialStatementNode,
+    GetFinancialReportsNode,
+    NewsSentimentNode,
+    RetrievalPipelineState,
+    RetrievalQueryPipeline,
+    RetrieveReportNode,
+    SearchReportsNode,
+    UpsertFilingsNode,
 )
+from src.models.fundamentals import FundamentalDTO
+from src.models.rag_retrieve import FilingResult, FinancialStatementOutput, SearchReportsOutput
 from src.models.retrieval_agent import (
     MarketNewsSource,
     RetrievalAgentMetadata,
     RetrievalAgentOutput,
     RetrievalAgentToolMetadata,
 )
-
-from ..base_agent import BaseAgent
+from src.utils.mcp_config import McpConfig
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +34,6 @@ DEFAULT_SEARCH_LIMIT = 5
 DEFAULT_TOP_K = 5
 DEFAULT_NEWS_LIMIT = 5
 DEFAULT_COLLECTION = "edgar_filings"
-
-
-class ToolExecutionError(Exception):
-    def __init__(self, message: str, metadata: RetrievalAgentToolMetadata) -> None:
-        super().__init__(message)
-        self.metadata = metadata
 
 
 class AnalystRetrievalAgent(BaseAgent):
@@ -51,8 +49,6 @@ class AnalystRetrievalAgent(BaseAgent):
                 "AnalystRetrievalAgent is responsible for collecting filings and market news for user-queried companies."
             ),
         )
-        self._rag_mcp_url = os.getenv("RAG_MCP_URL", "http://localhost:8300/mcp")
-        self._alpha_vantage_url = os.getenv("ALPHA_VANTAGE_MCP_URL", "http://localhost:8100/mcp")
 
     @override
     async def process(
@@ -66,136 +62,43 @@ class AnalystRetrievalAgent(BaseAgent):
         top_k: int = DEFAULT_TOP_K,
         news_limit: int = DEFAULT_NEWS_LIMIT,
     ) -> RetrievalAgentOutput:
-        status = "success"
-        metadata = RetrievalAgentMetadata()
-        warnings = metadata.warnings
         normalized_category = (filing_category or DEFAULT_FILING_CATEGORY).upper()
-        edgar_filings = self._default_search_output(ticker)
-        news_items: list[MarketNewsSource] = []
-        rag_answer = ""
-
-        logger.info(
-            "starting search_reports",
-            extra={"ticker": ticker, "filing_category": normalized_category, "limit": search_limit},
-        )
-        try:
-            search_payload = SearchReportsInput(
-                ticker=ticker,
-                filing_category=normalized_category,
-                limit=search_limit,
-            ).model_dump()
-            raw_search, metadata.search = await self._call_tool_with_metadata(
-                self._rag_mcp_url, "search_reports", search_payload
-            )
-            edgar_filings = SearchReportsOutput.model_validate(raw_search)
-            logger.info(
-                "search_reports completed",
-                extra={
-                    "ticker": edgar_filings.ticker,
-                    "filings": len(edgar_filings.filings),
-                    "collection": edgar_filings.collection_name,
-                },
-            )
-        except ToolExecutionError as exc:
-            metadata.search = exc.metadata
-            warnings.append(f"search_reports failed: {exc}")
-            status = "partial"
-        except ValidationError as exc:
-            status = "partial"
-            warnings.append(f"search_reports output invalid: {exc}")
-
-        logger.info(
-            "upsert_filings start",
-            extra={"filings": len(edgar_filings.filings)},
-        )
-        metadata.upsert = await self._upsert_filings(edgar_filings.filings)
-        logger.info(
-            "upsert_filings completed",
-            extra={"warnings": metadata.upsert.warnings},
-        )
-        if metadata.upsert.warnings:
-            status = "partial"
-            warnings.extend(metadata.upsert.warnings)
-
-        retrieve_filters: dict[str, Any] = {
-            "ticker": edgar_filings.ticker.upper(),
-        }
-        rag_answer = ""
-        raw_retrieve: dict[str, Any] = {}
-        logger.info(
-            "starting retrieve_report",
-            extra={"query": query, "filters": retrieve_filters, "top_k": top_k},
-        )
-        try:
-            retrieve_payload = RAGRetrieveInput(
-                query=query,
-                collection=DEFAULT_COLLECTION,
-                domain="edgar",
-                corpus="analyst_report",
-                company_name=company_name,
-                top_k=top_k,
-                filters=retrieve_filters,
-            ).model_dump()
-            raw_retrieve, metadata.retrieve = await self._call_tool_with_metadata(
-                self._rag_mcp_url, "retrieve_report", retrieve_payload
-            )
-            rag_answer = raw_retrieve.get("context", "") or ""
-            logger.info(
-                "retrieve_report completed",
-                extra={
-                    "matches": len(raw_retrieve.get("matches") or []),
-                    "context_length": len(rag_answer),
-                },
-            )
-        except ToolExecutionError as exc:
-            metadata.retrieve = exc.metadata
-            warnings.append(f"retrieve_report failed: {exc}")
-            status = "partial"
-        except ValidationError as exc:
-            status = "partial"
-            warnings.append(f"retrieve_report output invalid: {exc}")
-
-        news_payload: dict[str, Any] = {}
-        if ticker:
-            news_payload["tickers"] = ticker.upper()
-        if news_limit:
-            news_payload["limit"] = news_limit
-        logger.info(
-            "starting news_sentiment",
-            extra={"tickers": news_payload.get("tickers"), "limit": news_limit},
-        )
-        try:
-            raw_news, metadata.news = await self._call_tool_with_metadata(
-                self._alpha_vantage_url, "news_sentiment", news_payload
-            )
-            normalized_news = self._normalize_news_response(raw_news)
-            for index, entry in enumerate(normalized_news):
-                try:
-                    news_items.append(MarketNewsSource.model_validate(entry))
-                except ValidationError as exc:
-                    metadata.news.warnings.append(f"news entry {index} invalid: {exc}")
-            if metadata.news.warnings:
-                warnings.extend(metadata.news.warnings)
-        except ToolExecutionError as exc:
-            metadata.news = exc.metadata
-            warnings.append(f"news_sentiment failed: {exc}")
-            status = "partial"
-        except ValidationError as exc:
-            status = "partial"
-            warnings.append(f"news_sentiment output invalid: {exc}")
-
-        if status == "success" and not edgar_filings.filings and not rag_answer:
-            status = "partial"
-            warnings.append("No filings or RAG context could be gathered.")
-
-        return self._build_output(
+        state = RetrievalPipelineState(
             query=query,
-            status=status,
-            answer=rag_answer,
-            edgar_filings=edgar_filings,
-            market_news=news_items,
-            metadata=metadata,
-            warnings=warnings,
+            ticker=ticker,
+            company_name=company_name,
+            filing_category=normalized_category,
+            search_limit=search_limit,
+            top_k=top_k,
+            news_limit=news_limit,
+            collection_name=DEFAULT_COLLECTION,
+        )
+        pipeline = RetrievalQueryPipeline(
+            nodes=[
+                SearchReportsNode(),
+                UpsertFilingsNode(),
+                RetrieveReportNode(),
+                NewsSentimentNode(),
+                ExtractFinancialStatementNode(),
+                GetFinancialReportsNode(),
+            ]
+        )
+        await pipeline.run(self, state)
+
+        if state.status == "success" and not state.edgar_filings.filings and not state.rag_answer:
+            state.status = "partial"
+            state.warnings.append("No filings or RAG context could be gathered.")
+
+        return self.format_output(
+            query=query,
+            status=state.status,
+            answer=state.rag_answer,
+            edgar_filings=state.edgar_filings,
+            market_news=state.news_items,
+            metadata=state.metadata,
+            warnings=state.warnings,
+            financial_statement=state.financial_statement,
+            financial_reports=state.financial_reports,
         )
 
     @override
@@ -204,10 +107,6 @@ class AnalystRetrievalAgent(BaseAgent):
         Retrieval Agent does not require query reasoning.
         """
         pass
-
-    @override
-    async def call_mcp_tool(self, tools: list[dict[str, Any]]) -> Any:  # type: ignore[override]
-        raise NotImplementedError("call_mcp_tool is not used by the retrieval agent.")
 
     @override
     def get_system_prompt(self) -> str:  # type: ignore[override]
@@ -222,7 +121,7 @@ class AnalystRetrievalAgent(BaseAgent):
         start_monotonic = time.monotonic()
         try:
             payload = self._prepare_tool_payload(tool_name, tool_input)
-            result = await self._call_mcp_tool(server_url, tool_name, payload)
+            result = await self.call_mcp_tool(server_url, tool_name, payload)
             metadata = self._build_tool_metadata(
                 tool_name,
                 start_time,
@@ -266,8 +165,8 @@ class AnalystRetrievalAgent(BaseAgent):
         for filing in filings:
             metadata_dict = filing.metadata.model_dump()
             try:
-                await self._call_mcp_tool(
-                    self._rag_mcp_url,
+                await self.call_mcp_tool(
+                    McpConfig.rag_mcp_url,
                     "upsert_edgar_report",
                     {"href": filing.href, "metadata": metadata_dict},
                 )
@@ -283,9 +182,9 @@ class AnalystRetrievalAgent(BaseAgent):
             warnings=warnings,
         )
 
-    def _build_output(
+    @override
+    def format_output(
         self,
-        *,
         query: str,
         status: str,
         answer: str,
@@ -293,6 +192,8 @@ class AnalystRetrievalAgent(BaseAgent):
         market_news: list[MarketNewsSource],
         metadata: RetrievalAgentMetadata,
         warnings: list[str],
+        financial_statement: FinancialStatementOutput | None,
+        financial_reports: FundamentalDTO | None,
     ) -> RetrievalAgentOutput:
         metadata.warnings = warnings
         return RetrievalAgentOutput(
@@ -302,13 +203,6 @@ class AnalystRetrievalAgent(BaseAgent):
             edgar_filings=edgar_filings,
             market_news=market_news,
             metadata=metadata,
-        )
-
-    @staticmethod
-    def _default_search_output(ticker: str) -> SearchReportsOutput:
-        return SearchReportsOutput(
-            ticker=ticker.upper(),
-            cik="",
-            filings=[],
-            collection_name=DEFAULT_COLLECTION,
+            financial_statement=financial_statement,
+            financial_reports=financial_reports,
         )

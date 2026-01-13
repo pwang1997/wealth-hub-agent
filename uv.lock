@@ -1050,23 +1050,21 @@ wheels = [
 
 [[package]]
 name = "huggingface-hub"
-version = "1.2.3"
+version = "0.36.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filelock" },
     { name = "fsspec" },
-    { name = "hf-xet", marker = "platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'" },
-    { name = "httpx" },
+    { name = "hf-xet", marker = "platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'" },
     { name = "packaging" },
     { name = "pyyaml" },
-    { name = "shellingham" },
+    { name = "requests" },
     { name = "tqdm" },
-    { name = "typer-slim" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a7/c8/9cd2fcb670ba0e708bfdf95a1177b34ca62de2d3821df0773bc30559af80/huggingface_hub-1.2.3.tar.gz", hash = "sha256:4ba57f17004fd27bb176a6b7107df579865d4cde015112db59184c51f5602ba7", size = 614605, upload-time = "2025-12-12T15:31:42.161Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/98/63/4910c5fa9128fdadf6a9c5ac138e8b1b6cee4ca44bf7915bbfbce4e355ee/huggingface_hub-0.36.0.tar.gz", hash = "sha256:47b3f0e2539c39bf5cde015d63b72ec49baff67b6931c3d97f3f84532e2b8d25", size = 463358, upload-time = "2025-10-23T12:12:01.413Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/df/8d/7ca723a884d55751b70479b8710f06a317296b1fa1c1dec01d0420d13e43/huggingface_hub-1.2.3-py3-none-any.whl", hash = "sha256:c9b7a91a9eedaa2149cdc12bdd8f5a11780e10de1f1024718becf9e41e5a4642", size = 520953, upload-time = "2025-12-12T15:31:40.339Z" },
+    { url = "https://files.pythonhosted.org/packages/cb/bd/1a875e0d592d447cbc02805fd3fe0f497714d6a2583f59d14fa9ebad96eb/huggingface_hub-0.36.0-py3-none-any.whl", hash = "sha256:7bcc9ad17d5b3f07b57c78e79d527102d08313caa278a641993acddcb894548d", size = 566094, upload-time = "2025-10-23T12:11:59.557Z" },
 ]
 
 [[package]]
@@ -1330,7 +1328,7 @@ wheels = [
 
 [[package]]
 name = "llama-cloud-services"
-version = "0.6.88"
+version = "0.6.89"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -1342,9 +1340,9 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "tenacity" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/00/eb/2708a7e5b552b9da555484432f77da27c554b64539efe9c1220b35d43a62/llama_cloud_services-0.6.88.tar.gz", hash = "sha256:e1eb809194893c880ed6845e3127c8650002cb4aa1fc1651cdd94eeebea70172", size = 63096, upload-time = "2025-12-05T02:44:26.766Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/db/e9/8705be46bc3e3002fcb70b1805b4e4bcc4abea485062b05876913c357752/llama_cloud_services-0.6.89.tar.gz", hash = "sha256:17979f4f653b7ac5b7517b8fbb786aaf77cf861e289f1840d4f9c282c6d92842", size = 63341, upload-time = "2026-01-09T23:57:19.813Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e0/bf/da0943d97e0351c668254251cb2a15d60b88fe58393dd0b0fd1ec463f116/llama_cloud_services-0.6.88-py3-none-any.whl", hash = "sha256:dbe2936ab77bd34b48f0a4b2a8b8b221a84eb081166e600cea2002fee357d6c9", size = 76003, upload-time = "2025-12-05T02:44:25.497Z" },
+    { url = "https://files.pythonhosted.org/packages/1b/1c/5a4e025668b27a12f1d8111409c966aba8a217a42f264dd8c002869fd3c6/llama_cloud_services-0.6.89-py3-none-any.whl", hash = "sha256:7d0630594eb21931acc6264c1c460146c24eb9120dbfd4e0279ab8e468e9af74", size = 76260, upload-time = "2026-01-09T23:57:18.819Z" },
 ]
 
 [[package]]
@@ -3143,11 +3141,11 @@ wheels = [
 
 [[package]]
 name = "tenacity"
-version = "9.1.2"
+version = "8.5.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/0a/d4/2b0cd0fe285e14b36db076e78c93766ff1d529d70408bd1d2a5a84f1d929/tenacity-9.1.2.tar.gz", hash = "sha256:1169d376c297e7de388d18b4481760d478b0e99a777cad3a9c86e556f4b697cb", size = 48036, upload-time = "2025-04-02T08:25:09.966Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a3/4d/6a19536c50b849338fcbe9290d562b52cbdcf30d8963d3588a68a4107df1/tenacity-8.5.0.tar.gz", hash = "sha256:8bc6c0c8a09b31e6cad13c47afbed1a567518250a9a171418582ed8d9c20ca78", size = 47309, upload-time = "2024-07-05T07:25:31.836Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e5/30/643397144bfbfec6f6ef821f36f33e57d35946c44a2352d3c9f0ae847619/tenacity-9.1.2-py3-none-any.whl", hash = "sha256:f77bf36710d8b73a50b2dd155c97b870017ad21afe6ab300326b0371b3b05138", size = 28248, upload-time = "2025-04-02T08:25:07.678Z" },
+    { url = "https://files.pythonhosted.org/packages/d2/3f/8ba87d9e287b9d385a02a7114ddcef61b26f86411e121c9003eb509a1773/tenacity-8.5.0-py3-none-any.whl", hash = "sha256:b594c2a5945830c267ce6b79a166228323ed52718f30302c1359836112346687", size = 28165, upload-time = "2024-07-05T07:25:29.591Z" },
 ]
 
 [[package]]
@@ -3256,19 +3254,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/6d/c1/933d30fd7a123ed981e2a1eedafceab63cb379db0402e438a13bc51bbb15/typer-0.20.1.tar.gz", hash = "sha256:68585eb1b01203689c4199bc440d6be616f0851e9f0eb41e4a778845c5a0fd5b", size = 105968, upload-time = "2025-12-19T16:48:56.302Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c8/52/1f2df7e7d1be3d65ddc2936d820d4a3d9777a54f4204f5ca46b8513eff77/typer-0.20.1-py3-none-any.whl", hash = "sha256:4b3bde918a67c8e03d861aa02deca90a95bbac572e71b1b9be56ff49affdb5a8", size = 47381, upload-time = "2025-12-19T16:48:53.679Z" },
-]
-
-[[package]]
-name = "typer-slim"
-version = "0.21.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "click" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f9/3b/2f60ce16f578b1db5b8816d37d6a4d9786b33b76407fc8c13b0b86312c31/typer_slim-0.21.0.tar.gz", hash = "sha256:f2dbd150cfa0fead2242e21fa9f654dfc64773763ddf07c6be9a49ad34f79557", size = 106841, upload-time = "2025-12-25T09:54:55.998Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b4/84/e97abf10e4a699194ff07fd586ec7f4cf867d9d04bead559a65f9e7aff84/typer_slim-0.21.0-py3-none-any.whl", hash = "sha256:92aee2188ac6fc2b2924bd75bb61a340b78bd8cd51fd9735533ce5a856812c8e", size = 47174, upload-time = "2025-12-25T09:54:54.609Z" },
 ]
 
 [[package]]
@@ -3434,6 +3419,7 @@ dependencies = [
     { name = "finnhub-python" },
     { name = "httpx" },
     { name = "llama-cloud-services" },
+    { name = "llama-index-core" },
     { name = "llama-index-embeddings-openai" },
     { name = "llama-index-llms-openai" },
     { name = "llama-index-vector-stores-chroma" },
@@ -3469,6 +3455,7 @@ requires-dist = [
     { name = "finnhub-python", specifier = ">=2.4.26" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "llama-cloud-services", specifier = ">=0.6.88" },
+    { name = "llama-index-core", specifier = ">=0.14.10" },
     { name = "llama-index-embeddings-openai", specifier = ">=0.5.1" },
     { name = "llama-index-llms-openai", specifier = ">=0.6.12" },
     { name = "llama-index-vector-stores-chroma", specifier = ">=0.5.5" },

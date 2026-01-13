@@ -15,6 +15,7 @@ if REPO_ROOT not in sys.path:
 
 from src.agents.retrieval.prompt import format_user_prompt, get_system_prompt
 from src.agents.retrieval.retrieval_agent import AnalystRetrievalAgent
+from src.models.retrieval_agent import RetrievalAgentOutput
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
@@ -77,18 +78,18 @@ def _build_answer_with_context(query: str, context: str) -> str:
 
 async def main() -> None:
     agent = AnalystRetrievalAgent()
-    query = "what are the core businesses of Nvidia?"
+    query = "SHOULD I BUY NVDA RIGHT NOW?"
     company_name, ticker = get_para_from_query(query)
     logging.getLogger(__name__).info(
         "Running retrieval agent workflow",
         extra={"query": query, "ticker": ticker, "company_name": company_name},
     )
 
-    result = await agent.process(
+    result: RetrievalAgentOutput = await agent.process(
         query=query,
         ticker=ticker,
         company_name=company_name,
-        top_k=3,
+        top_k=5,
     )
 
     payload = result.model_dump()

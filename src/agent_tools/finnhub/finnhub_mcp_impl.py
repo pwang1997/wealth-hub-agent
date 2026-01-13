@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from fastapi.logger import logger
 
 from clients.finnhub_rest_client import FinnHubRestClient
-from src.models.income_statement import IncomeStatementDTO
+from src.models.fundamentals import FundamentalDTO
 from src.utils.cache import cache_key
 from src.utils.logging_config import configure_logging
 
@@ -90,7 +90,7 @@ async def get_financial_reports_impl(
     access_number: str | None,
     from_date: str | None,
     freq: Literal["annual", "quarterly"] = "annual",
-) -> IncomeStatementDTO:
+) -> FundamentalDTO:
     if not symbol:
         raise ValueError("symbol is required")
 
