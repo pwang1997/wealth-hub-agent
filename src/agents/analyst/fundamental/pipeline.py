@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass, field
 
 from openai import OpenAI
@@ -40,8 +41,7 @@ class ReasoningNode(FundamentalAnalystPipelineNode):
     async def run(self, agent: BaseAgent, state: FundamentalAnalystPipelineState) -> None:
         openai_api_key = os.getenv("OPENAI_API_KEY")
         if not openai_api_key:
-            state.reasoning = "Skipping reasoning: OPENAI_API_KEY not found."
-            return
+            raise RuntimeError("OPENAI_API_KEY is required for fundamental analysis")
 
         client = OpenAI(api_key=openai_api_key)
         model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
@@ -61,16 +61,10 @@ class ReasoningNode(FundamentalAnalystPipelineNode):
         )
         content = response.choices[0].message.content or ""
 
-        # Simple tag parser
         def extract_tag(text: str, tag: str) -> str:
-            start_tag = f"<{tag}>"
-            end_tag = f"</{tag}>"
-            try:
-                start = text.index(start_tag) + len(start_tag)
-                end = text.index(end_tag)
-                return text[start:end].strip()
-            except ValueError:
-                return ""
+            # Use a non-greedy match to find content between the first pair of tags
+            match = re.search(rf"<{tag}>(.*?)</{tag}>", text, re.DOTALL)
+            return match.group(1).strip() if match else ""
 
         state.internal_thought = extract_tag(content, "thought")
         state.objectives = extract_tag(content, "objectives")

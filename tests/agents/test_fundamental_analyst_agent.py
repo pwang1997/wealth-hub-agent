@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.agents.analyst.fundamental.agent import FundamentalAnalystAgent
+from src.agents.analyst.fundamental.fundamental_analyst_agent import FundamentalAnalystAgent
 from src.models.fundamental_analyst import FundamentalAnalystOutput
 from src.models.fundamentals import (
     FinancialReportEntry,

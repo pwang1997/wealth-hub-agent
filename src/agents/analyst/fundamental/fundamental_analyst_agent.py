@@ -32,7 +32,7 @@ class FundamentalAnalystAgent(BaseAgent):
         )
 
     @override
-    async def process(self, retrieval_output: RetrievalAgentOutput) -> FundamentalAnalystOutput:  # type: ignore[override]
+    async def process(self, retrieval_output: RetrievalAgentOutput) -> FundamentalAnalystOutput:
         """
         Process the retrieval output to perform fundamental analysis using a pipeline.
         """
