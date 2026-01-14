@@ -27,7 +27,7 @@ def mock_research_output():
             strengths=[],
             weaknesses=[],
             red_flags=[],
-            citations=[]
+            citations=[],
         ),
         news_analysis=NewsAnalystOutput(
             query="AAPL",
@@ -36,8 +36,8 @@ def mock_research_output():
             rationale="Bullish news",
             ticker_rollups=[],
             news_items=[],
-            warnings=[]
-        )
+            warnings=[],
+        ),
     )
 
 
@@ -74,10 +74,10 @@ async def test_investment_manager_agent_process(mock_research_output):
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "fake-key"}):
             result = await agent.process(mock_research_output)
-
+            confidence = 0.95
             assert isinstance(result, InvestmentManagerOutput)
             assert result.ticker == "AAPL"
             assert result.decision == "strong buy"
-            assert result.confidence == 0.95
+            assert result.confidence == confidence
             assert "Perfect alignment" in result.rationale
             assert result.reasoning == "Highlight confluence of signals."

@@ -31,17 +31,14 @@ class InvestmentManagerAgent(BaseAgent):
             ),
         )
 
-    async def process(
-        self, research_output: ResearchAnalystOutput
-    ) -> InvestmentManagerOutput:
+    async def process(self, research_output: ResearchAnalystOutput) -> InvestmentManagerOutput:
         """
         Process research output to produce an investment decision.
         """
         logger.info(f"Starting investment decision for ticker: {research_output.ticker}")
 
         state = InvestmentManagerPipelineState(
-            ticker=research_output.ticker,
-            research_output=research_output
+            ticker=research_output.ticker, research_output=research_output
         )
 
         pipeline = InvestmentManagerPipeline(
@@ -59,7 +56,7 @@ class InvestmentManagerAgent(BaseAgent):
                 decision="hold",
                 rationale="Investment pipeline failed to produce a decision.",
                 confidence=0.0,
-                reasoning=state.objectives
+                reasoning=state.objectives,
             )
         else:
             decision_output = state.decision_output

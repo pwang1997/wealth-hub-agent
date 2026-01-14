@@ -105,7 +105,7 @@ class DecisionNode(InvestmentManagerPipelineNode):
             parsed = json.loads(content)
             parsed["ticker"] = state.ticker
             parsed["reasoning"] = state.objectives
-            
+
             state.decision_output = InvestmentManagerOutput.model_validate(parsed)
 
         except Exception as exc:
@@ -115,7 +115,7 @@ class DecisionNode(InvestmentManagerPipelineNode):
                 decision="hold",
                 rationale=f"Failed to reach a decision: {exc}",
                 confidence=0.0,
-                reasoning=state.objectives
+                reasoning=state.objectives,
             )
 
         logger.info(f"DecisionNode completed for {state.ticker}")

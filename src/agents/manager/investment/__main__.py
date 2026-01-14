@@ -13,13 +13,14 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", 
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
+from openai import OpenAI
+
 from src.agents.analyst.fundamental.fundamental_analyst_agent import FundamentalAnalystAgent
 from src.agents.analyst.news.news_analyst_agent import NewsAnalystAgent
 from src.agents.analyst.research.research_analyst_agent import ResearchAnalystAgent
 from src.agents.manager.investment.investment_manager_agent import InvestmentManagerAgent
 from src.agents.retrieval.retrieval_agent import AnalystRetrievalAgent
 from src.models.research_analyst import ResearchAnalystOutput
-from openai import OpenAI
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -55,6 +56,7 @@ def get_para_from_query(query: str) -> tuple[str, str]:
 
     try:
         import json
+
         parsed = json.loads(payload)
         return parsed.get("company_name", ""), parsed.get("ticker", "")
     except json.JSONDecodeError:
@@ -143,7 +145,7 @@ async def main() -> None:
     print("-" * 60)
     print(f"Rationale: {decision_result.rationale}")
     print("-" * 60)
-    
+
     if decision_result.reasoning:
         print("\n[REASONING OBJECTIVES]")
         print(decision_result.reasoning)
