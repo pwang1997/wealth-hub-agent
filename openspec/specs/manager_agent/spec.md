@@ -46,4 +46,4 @@ class ManagerOutput(BaseModel):
     decision: Literal["strong buy", "buy", "hold", "sell", "strong sell"]
     rationale: str
     confidence: float
-```
+    reasoning: str | None = None
