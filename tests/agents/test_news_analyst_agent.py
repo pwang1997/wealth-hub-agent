@@ -61,23 +61,41 @@ def test_aggregation_logic():
                 time_published=av_ts(now - timedelta(hours=2))
             ),
             NewsSentiment(
-                title="Market Crash Looming",
-                source="Source C",
-                url="url3",
-                summary="summary3",
+                title="Irrelevant News",
+                source="Source D",
+                url="url4",
+                summary="summary4",
                 topics=[],
-                overall_sentiment_score="-0.9",
-                overall_sentiment_label="Bearish",
+                overall_sentiment_score="0.5",
+                overall_sentiment_label="Bullish",
                 ticker_sentiment=[
                     NewsTickerSentiment(
-                        ticker="SPY",
-                        relevance_score="0.5",
-                        ticker_sentiment_score="-0.9",
-                        ticker_sentiment_label="Bearish"
+                        ticker="AAPL",
+                        relevance_score="0.5",  # Should be ignored (> 0.8 required)
+                        ticker_sentiment_score="0.5",
+                        ticker_sentiment_label="Bullish",
                     )
                 ],
-                time_published=av_ts(now - timedelta(days=2)) # Older
-            )
+                time_published=av_ts(now - timedelta(minutes=5)),
+            ),
+            NewsSentiment(
+                title="NVIDIA Breakthrough",
+                source="Source E",
+                url="url5",
+                summary="summary5",
+                topics=[],
+                overall_sentiment_score="0.9",
+                overall_sentiment_label="Bullish",
+                ticker_sentiment=[
+                    NewsTickerSentiment(
+                        ticker="NVDA",
+                        relevance_score="0.95",  # Highly relevant but WRONG TICKER
+                        ticker_sentiment_score="0.9",
+                        ticker_sentiment_label="Bullish",
+                    )
+                ],
+                time_published=av_ts(now - timedelta(minutes=1)),
+            ),
         ]
 
         retrieval_output = RetrievalAgentOutput(
@@ -102,18 +120,24 @@ def test_aggregation_logic():
         # Verify deduplication
         assert any("Deduplicated 1 articles" in w for w in state.warnings)
         
-        # Verify recency impact
-        # The Apple (bullish) news is 1h old, the Crash (bearish) news is 48h old.
-        # Apple should dominate.
-        assert state.overall_score > 0
-        assert state.overall_label == "bullish"
-        
-        # Verify per-ticker rollups
+        # Verify relevance and ticker filtering
+        # 1. 'Irrelevant News' (relevance 0.5) skipped.
+        # 2. 'NVIDIA Breakthrough' (wrong ticker NVDA) skipped.
+        # 3. AAPL rollup based on Item #1 (Item #2 is duplicate).
         assert "AAPL" in state.ticker_rollups
         assert state.ticker_rollups["AAPL"].sentiment_label == "bullish"
-        assert state.ticker_rollups["AAPL"].sentiment_score > 0.5
+        assert state.ticker_rollups["AAPL"].sentiment_score == 0.8
         
-        assert "SPY" in state.ticker_rollups
-        assert state.ticker_rollups["SPY"].sentiment_label == "bearish"
+        # 'NVDA' or 'SPY' shouldn't be here
+        assert "NVDA" not in state.ticker_rollups
+        assert "SPY" not in state.ticker_rollups
+        
+        # Only AAPL headlines should be in the rollups
+        all_headlines = []
+        for r in state.ticker_rollups.values():
+            all_headlines.extend(r.top_headlines)
+        assert "Irrelevant News" not in all_headlines
+        assert "NVIDIA Breakthrough" not in all_headlines
+        assert "Apple releases new iPhone" in all_headlines
 
     asyncio.run(run())

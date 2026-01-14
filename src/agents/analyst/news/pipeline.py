@@ -100,6 +100,7 @@ class AggregationNode(NewsAnalystPipelineNode):
             state.warnings.append(f"Deduplicated {len(news_items) - len(unique_news)} articles.")
 
         # 2. Score Calculation with Exponential Decay
+        target_ticker = state.retrieval_output.edgar_filings.ticker
         now = datetime.now(UTC)
         total_weighted_score = 0.0
         total_weight = 0.0
@@ -118,27 +119,16 @@ class AggregationNode(NewsAnalystPipelineNode):
                     pub_date = now
 
             delta_hours = (now - pub_date).total_seconds() / 3600.0
-            # Decay constant lambda - say half-life of 24 hours
-            # e^(-lambda * 24) = 0.5 => lambda = ln(2) / 24
             decay_lambda = math.log(2) / 24.0
             recency_weight = math.exp(-decay_lambda * delta_hours)
             
-            # Use overall sentiment score as base
-            try:
-                score = float(item.overall_sentiment_score)
-            except (ValueError, TypeError):
-                score = 0.0
-
-            weighted_score = score * recency_weight
-            total_weighted_score += weighted_score
-            total_weight += recency_weight
-
-            # Ticker rollups
+            # Ticker rollups - only care about the target ticker if highly relevant (> 0.8)
+            item_is_relevant_to_target = False
             for ts in item.ticker_sentiment:
                 ticker = ts.ticker
-                if ticker not in ticker_data:
-                    ticker_data[ticker] = []
-                
+                if ticker != target_ticker:
+                    continue
+
                 try:
                     rel_score = float(ts.relevance_score)
                     ts_score = float(ts.ticker_sentiment_score)
@@ -146,9 +136,25 @@ class AggregationNode(NewsAnalystPipelineNode):
                     rel_score = 0.0
                     ts_score = 0.0
                 
-                # Weight by ticker-specific relevance AND recency
-                t_weight = rel_score * recency_weight
-                ticker_data[ticker].append((ts_score * t_weight, t_weight, item.title))
+                if rel_score > 0.8:
+                    item_is_relevant_to_target = True
+                    if ticker not in ticker_data:
+                        ticker_data[ticker] = []
+                    
+                    # Weight by ticker-specific relevance AND recency
+                    t_weight = rel_score * recency_weight
+                    ticker_data[ticker].append((ts_score * t_weight, t_weight, item.title))
+
+            # Only contribute to overall score if the article is highly relevant to the target ticker
+            if item_is_relevant_to_target:
+                try:
+                    score = float(item.overall_sentiment_score)
+                except (ValueError, TypeError):
+                    score = 0.0
+
+                weighted_score = score * recency_weight
+                total_weighted_score += weighted_score
+                total_weight += recency_weight
 
         # Final overall calculation
         if total_weight > 0:
