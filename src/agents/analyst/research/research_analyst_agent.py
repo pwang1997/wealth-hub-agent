@@ -2,14 +2,14 @@ import logging
 from typing import override
 
 from src.agents.base_agent import BaseAgent
-from src.models.research_analyst import ResearchAnalystOutput
 from src.models.fundamental_analyst import FundamentalAnalystOutput
 from src.models.news_analyst import NewsAnalystOutput
+from src.models.research_analyst import ResearchAnalystOutput
 
 from .pipeline import (
+    ReasoningNode,
     ResearchAnalystPipeline,
     ResearchAnalystPipelineState,
-    ReasoningNode,
     SynthesisNode,
 )
 from .prompt import get_system_prompt

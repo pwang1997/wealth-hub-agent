@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.agents.analyst.research.research_analyst_agent import ResearchAnalystAgent
-from src.models.research_analyst import ResearchAnalystOutput
 from src.models.fundamental_analyst import FundamentalAnalystOutput
 from src.models.news_analyst import NewsAnalystOutput
+from src.models.research_analyst import ResearchAnalystOutput
 
 
 @pytest.fixture

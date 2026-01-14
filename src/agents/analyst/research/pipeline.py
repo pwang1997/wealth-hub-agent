@@ -8,9 +8,9 @@ from openai import OpenAI
 
 from src.agents.base_agent import BaseAgent
 from src.agents.base_pipeline import BasePipeline, BasePipelineNode
-from src.models.research_analyst import ResearchAnalystOutput
 from src.models.fundamental_analyst import FundamentalAnalystOutput
 from src.models.news_analyst import NewsAnalystOutput
+from src.models.research_analyst import ResearchAnalystOutput
 
 from .prompt import format_synthesis_prompt
 
