@@ -30,6 +30,14 @@ The agent SHALL provide a concise (2-3 sentence) rationale that explains the pri
 ### Requirement: Confidence Scoring
 The agent SHALL provide a confidence score between 0.0 and 1.0, reflecting the certainty of the decision based on the clarity and consistency of the input signals.
 
+#### Scenario: High Certainty
+- **WHEN** Both fundamental and news signals are strong and aligned.
+- **THEN** The confidence score should be high (e.g., > 0.8).
+
+#### Scenario: Low Certainty
+- **WHEN** Signals are conflicting or weak (e.g., strong fundamentals but terrible news).
+- **THEN** The confidence score should be lower to reflect the risk/ambiguity.
+
 ## Data Model
 
 ```python
