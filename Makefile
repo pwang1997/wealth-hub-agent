@@ -22,7 +22,7 @@ lint-fix:
 	uv run --extra dev ruff format .
 
 test:
-	uv run --extra test pytest ./tests/agents
+	PYTHONPATH=. uv run --extra test pytest ./tests
 
 clean-install:
 	rm -rf .venv
