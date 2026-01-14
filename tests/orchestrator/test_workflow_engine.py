@@ -1,4 +1,3 @@
-import asyncio
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -22,7 +21,7 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
 
         # Instantiate orchestrator (will use mocked Cache)
         self.orchestrator = WorkflowOrchestrator()
-        
+
         # Patch Agents
         self.orchestrator.retrieval_agent = AsyncMock()
         self.orchestrator.fundamental_agent = AsyncMock()
@@ -38,16 +37,16 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
         retrieval_out = MagicMock(spec=RetrievalAgentOutput)
         retrieval_out.status = "success"
         self.orchestrator.retrieval_agent.process.return_value = retrieval_out
-        
+
         fund_out = MagicMock(spec=FundamentalAnalystOutput)
         self.orchestrator.fundamental_agent.process.return_value = fund_out
-        
+
         news_out = MagicMock(spec=NewsAnalystOutput)
         self.orchestrator.news_agent.process.return_value = news_out
-        
+
         research_out = MagicMock(spec=ResearchAnalystOutput)
         self.orchestrator.research_agent.process.return_value = research_out
-        
+
         invest_out = MagicMock(spec=InvestmentManagerOutput)
         self.orchestrator.investment_agent.process.return_value = invest_out
 
@@ -62,7 +61,7 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res.news.status, "completed")
         self.assertEqual(res.research.status, "completed")
         self.assertEqual(res.investment.status, "completed")
-        
+
         # Verify calls
         self.orchestrator.retrieval_agent.process.assert_awaited_once()
         self.orchestrator.fundamental_agent.process.assert_awaited_once()
@@ -84,7 +83,7 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res.retrieval.status, "completed")
         self.assertEqual(res.fundamental.status, "skipped")
         self.assertEqual(res.news.status, "skipped")
-        
+
         self.assertEqual(res.status, "partial")
         self.orchestrator.fundamental_agent.process.assert_not_awaited()
 
@@ -93,11 +92,11 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
         retrieval_out = MagicMock(spec=RetrievalAgentOutput)
         retrieval_out.status = "success"
         self.orchestrator.retrieval_agent.process.return_value = retrieval_out
-        
+
         # Mock Fundamental Success
         fund_out = MagicMock(spec=FundamentalAnalystOutput)
         self.orchestrator.fundamental_agent.process.return_value = fund_out
-        
+
         # Mock News Failure via Exception
         self.orchestrator.news_agent.process.side_effect = Exception("News API Error")
 
@@ -110,7 +109,7 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res.fundamental.status, "completed")
         self.assertEqual(res.news.status, "failed")
         self.assertIn("News API Error", res.news.warnings[0])
-        
+
         # Research should be skipped or partially handled depending on logic
         # Current logic checks strictly for success of enabled steps
         self.assertEqual(res.research.status, "skipped")
@@ -121,12 +120,13 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
         cached_retrieval = MagicMock()
         cached_retrieval.status = "completed"
         cached_retrieval.output = MagicMock(spec=RetrievalAgentOutput)
-        
+
         # Configure cache to return result for retrieval key, None for others
         def side_effect(key):
             if "retrieval" in key:
                 return cached_retrieval
             return None
+
         self.mock_cache.get.side_effect = side_effect
 
         # Run
@@ -138,18 +138,18 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res.retrieval, cached_retrieval)
 
     async def test_streaming_generator(self):
-         # Setup Mocks
+        # Setup Mocks
         retrieval_out = MagicMock(spec=RetrievalAgentOutput)
         retrieval_out.status = "success"
         self.orchestrator.retrieval_agent.process.return_value = retrieval_out
-        
+
         # Stop at retrieval effectively
         req = WorkflowRequest(query="test", ticker="AAPL", only_steps=["retrieval"])
-        
+
         events = []
         async for event in self.orchestrator.workflow_generator(req, "stream_id"):
             events.append(event)
-            
+
         # Should have step_start, step_complete, workflow_complete
         event_types = [e.event for e in events]
         self.assertIn("step_start", event_types)

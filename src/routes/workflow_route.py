@@ -1,6 +1,5 @@
-import json
 import logging
-from typing import Any
+from http.client import INTERNAL_SERVER_ERROR
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -23,7 +22,7 @@ async def run_workflow(request: WorkflowRequest):
         return await orchestrator.run_workflow(request)
     except Exception as e:
         logger.exception("Workflow execution failed")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=INTERNAL_SERVER_ERROR, detail=str(e)) from e
 
 
 @router.post("/stream")
@@ -31,17 +30,21 @@ async def stream_workflow(request: WorkflowRequest):
     """
     Execute a workflow and stream events (SSE).
     """
+
     async def event_generator():
-        workflow_id = request.workflow_id or "wf_" + str(request.query.__hash__()) # temporary ID gen if missing
-        
-        # The orchestrator handles ID generation internally if passed None, 
+        workflow_id = request.workflow_id or "wf_" + str(
+            request.query.__hash__()
+        )  # temporary ID gen if missing
+        assert workflow_id is not None
+        # The orchestrator handles ID generation internally if passed None,
         # but for streaming we might want consistency if we rely on the ID outside.
-        # Actually types.py says WorkflowRequest has optional workflow_id. 
+        # Actually types.py says WorkflowRequest has optional workflow_id.
         # orchestrator.workflow_generator takes a strictly typed string workflow_id.
         # So we should generate it here if missing.
         import uuid
+
         effective_id = request.workflow_id or str(uuid.uuid4())
-        
+
         try:
             async for event in orchestrator.workflow_generator(request, effective_id):
                 # SSE format: data: <json>\n\n
@@ -50,10 +53,7 @@ async def stream_workflow(request: WorkflowRequest):
             logger.exception("Streaming workflow failed")
             # We try to emit an error event if the stream is still open
             error_event = StreamEvent(
-                workflow_id=effective_id, 
-                event="error", 
-                status="failed", 
-                payload={"error": str(e)}
+                workflow_id=effective_id, event="error", status="failed", payload={"error": str(e)}
             )
             yield f"data: {error_event.model_dump_json()}\n\n"
 

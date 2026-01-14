@@ -3,8 +3,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from datetime import timedelta
-from typing import Any
 
 from diskcache import Cache
 
@@ -35,7 +33,7 @@ CACHE_TTL_SECONDS = 86400  # 24 hours
 class WorkflowOrchestrator:
     def __init__(self, cache_dir: str = "/tmp/wealth_hub_workflow_cache"):
         self.cache = Cache(cache_dir)
-        
+
         # Initialize agents
         self.retrieval_agent = AnalystRetrievalAgent()
         self.fundamental_agent = FundamentalAnalystAgent()
@@ -44,14 +42,11 @@ class WorkflowOrchestrator:
         self.investment_agent = InvestmentManagerAgent()
 
     def _should_run_step(
-        self, 
-        step: StepName, 
-        only_steps: list[StepName] | None, 
-        until_step: StepName | None
+        self, step: StepName, only_steps: list[StepName] | None, until_step: StepName | None
     ) -> bool:
         if only_steps:
             return step in only_steps
-        
+
         if until_step:
             try:
                 stop_index = STEP_ORDER.index(until_step)
@@ -61,7 +56,7 @@ class WorkflowOrchestrator:
                 # Fallback if step names strictly don't align perfectly (e.g. parallel steps)
                 # But here we handle strict list logic.
                 pass
-        
+
         return True
 
     def _get_cached_result(self, workflow_id: str, step: StepName) -> WorkflowStepResult | None:
@@ -79,10 +74,9 @@ class WorkflowOrchestrator:
         Executes the workflow and returns the final response object.
         """
         final_response = WorkflowResponse(
-            workflow_id=workflow_id or request.workflow_id or f"wf_{time.time()}", 
-            status="running"
+            workflow_id=workflow_id or request.workflow_id or f"wf_{time.time()}", status="running"
         )
-        
+
         async for event in self.workflow_generator(request, final_response.workflow_id):
             if event.event == "step_complete":
                 if event.step == "retrieval":
@@ -97,7 +91,7 @@ class WorkflowOrchestrator:
                     final_response.investment = event.payload
             elif event.event == "workflow_complete":
                 final_response.status = event.status  # type: ignore
-        
+
         return final_response
 
     async def workflow_generator(self, request: WorkflowRequest, workflow_id: str):
@@ -105,92 +99,110 @@ class WorkflowOrchestrator:
         Yields StreamEvents as the workflow progresses.
         """
         yield StreamEvent(workflow_id=workflow_id, event="step_start", step="retrieval")
-        
+
         # 1. Retrieval
         retrieval_res = await self._execute_step(
             workflow_id=workflow_id,
             step_name="retrieval",
             request=request,
             func=lambda: self.retrieval_agent.process(
-                query=request.query, 
+                query=request.query,
                 ticker=request.ticker,
                 company_name=request.company_name,
                 news_limit=request.news_limit,
-                search_limit=request.search_limit
-            )
+                search_limit=request.search_limit,
+            ),
         )
         yield StreamEvent(
-            workflow_id=workflow_id, 
-            event="step_complete", 
-            step="retrieval", 
-            status=retrieval_res.status, 
-            payload=retrieval_res
+            workflow_id=workflow_id,
+            event="step_complete",
+            step="retrieval",
+            status=retrieval_res.status,
+            payload=retrieval_res,
         )
 
         if retrieval_res.status != "completed":
             final_status = "failed" if retrieval_res.status == "failed" else "partial"
-            yield StreamEvent(workflow_id=workflow_id, event="workflow_complete", status=final_status)
+            yield StreamEvent(
+                workflow_id=workflow_id, event="workflow_complete", status=final_status
+            )
             return
 
         # 2. Parallel Extraction (Fundamental & News)
-        run_fundamental = self._should_run_step("fundamental", request.only_steps, request.until_step)
+        run_fundamental = self._should_run_step(
+            "fundamental", request.only_steps, request.until_step
+        )
         run_news = self._should_run_step("news", request.only_steps, request.until_step)
-        
+
         yield StreamEvent(workflow_id=workflow_id, event="step_start", step="fundamental")
         yield StreamEvent(workflow_id=workflow_id, event="step_start", step="news")
 
         fundamental_task = None
         news_task = None
-        
+
         if run_fundamental:
             fundamental_task = asyncio.create_task(
-                 self._execute_step(
+                self._execute_step(
                     workflow_id=workflow_id,
                     step_name="fundamental",
                     request=request,
-                    func=lambda: self.fundamental_agent.process(retrieval_output=retrieval_res.output)
+                    func=lambda: self.fundamental_agent.process(
+                        retrieval_output=retrieval_res.output
+                    ),
                 )
             )
-        
+
         if run_news:
-             news_task = asyncio.create_task(
-                 self._execute_step(
+            news_task = asyncio.create_task(
+                self._execute_step(
                     workflow_id=workflow_id,
                     step_name="news",
                     request=request,
-                    func=lambda: self.news_agent.process(retrieval_output=retrieval_res.output)
+                    func=lambda: self.news_agent.process(retrieval_output=retrieval_res.output),
                 )
             )
 
         # Await parallel results
         fundamental_res = None
         news_res = None
-        
+
         if fundamental_task:
             fundamental_res = await fundamental_task
             yield StreamEvent(
-                workflow_id=workflow_id, 
-                event="step_complete", 
-                step="fundamental", 
-                status=fundamental_res.status, 
-                payload=fundamental_res
+                workflow_id=workflow_id,
+                event="step_complete",
+                step="fundamental",
+                status=fundamental_res.status,
+                payload=fundamental_res,
             )
-        elif run_fundamental is False: # Skipped
-             fundamental_res = WorkflowStepResult(step_name="fundamental", status="skipped")
-             yield StreamEvent(workflow_id=workflow_id, event="step_complete", step="fundamental", status="skipped", payload=fundamental_res)
+        elif run_fundamental is False:  # Skipped
+            fundamental_res = WorkflowStepResult(step_name="fundamental", status="skipped")
+            yield StreamEvent(
+                workflow_id=workflow_id,
+                event="step_complete",
+                step="fundamental",
+                status="skipped",
+                payload=fundamental_res,
+            )
 
         if news_task:
             news_res = await news_task
             yield StreamEvent(
-                workflow_id=workflow_id, 
-                event="step_complete", 
-                step="news", 
-                status=news_res.status, 
-                payload=news_res
+                workflow_id=workflow_id,
+                event="step_complete",
+                step="news",
+                status=news_res.status,
+                payload=news_res,
             )
-        elif run_news is False: # Skipped
+        elif run_news is False:  # Skipped
             news_res = WorkflowStepResult(step_name="news", status="skipped")
-            yield StreamEvent(workflow_id=workflow_id, event="step_complete", step="news", status="skipped", payload=news_res)
+            yield StreamEvent(
+                workflow_id=workflow_id,
+                event="step_complete",
+                step="news",
+                status="skipped",
+                payload=news_res,
+            )
 
         # 3. Research
         can_run_research = True
@@ -198,86 +210,93 @@ class WorkflowOrchestrator:
             can_run_research = False
         if run_news and news_res.status != "completed":
             can_run_research = False
-            
+
         research_res = None
-        if can_run_research and self._should_run_step("research", request.only_steps, request.until_step):
+        if can_run_research and self._should_run_step(
+            "research", request.only_steps, request.until_step
+        ):
             yield StreamEvent(workflow_id=workflow_id, event="step_start", step="research")
             research_res = await self._execute_step(
                 workflow_id=workflow_id,
                 step_name="research",
                 request=request,
                 func=lambda: self.research_agent.process(
-                    fundamental_output=fundamental_res.output,
-                    news_output=news_res.output
-                )
+                    fundamental_output=fundamental_res.output, news_output=news_res.output
+                ),
             )
             yield StreamEvent(
-                workflow_id=workflow_id, 
-                event="step_complete", 
-                step="research", 
-                status=research_res.status, 
-                payload=research_res
+                workflow_id=workflow_id,
+                event="step_complete",
+                step="research",
+                status=research_res.status,
+                payload=research_res,
             )
         else:
-             status = "skipped" if not can_run_research else "skipped"
-             warnings = ["Upstream dependencies failed"] if not can_run_research else []
-             research_res = WorkflowStepResult(step_name="research", status=status, warnings=warnings)
-             # emit skipped event if strictly needed, or just omit. Let's emit for completeness
-             yield StreamEvent(workflow_id=workflow_id, event="step_complete", step="research", status=status, payload=research_res)
+            status = "skipped"
+            warnings = ["Upstream dependencies failed"] if not can_run_research else []
+            research_res = WorkflowStepResult(
+                step_name="research", status=status, warnings=warnings
+            )
+            # emit skipped event if strictly needed, or just omit. Let's emit for completeness
+            yield StreamEvent(
+                workflow_id=workflow_id,
+                event="step_complete",
+                step="research",
+                status=status,
+                payload=research_res,
+            )
 
         if research_res.status != "completed":
-             steps_so_far = [retrieval_res, fundamental_res, news_res, research_res]
-             if any(s and s.status == "failed" for s in steps_so_far):
-                 final_status = "failed"
-             else:
-                 final_status = "partial"
-             yield StreamEvent(workflow_id=workflow_id, event="workflow_complete", status=final_status)
-             return
+            steps_so_far = [retrieval_res, fundamental_res, news_res, research_res]
+            if any(s and s.status == "failed" for s in steps_so_far):
+                final_status = "failed"
+            else:
+                final_status = "partial"
+            yield StreamEvent(
+                workflow_id=workflow_id, event="workflow_complete", status=final_status
+            )
+            return
 
         # 4. Investment
         investment_res = None
         if self._should_run_step("investment", request.only_steps, request.until_step):
-             yield StreamEvent(workflow_id=workflow_id, event="step_start", step="investment")
-             investment_res = await self._execute_step(
+            yield StreamEvent(workflow_id=workflow_id, event="step_start", step="investment")
+            investment_res = await self._execute_step(
                 workflow_id=workflow_id,
                 step_name="investment",
                 request=request,
-                func=lambda: self.investment_agent.process(research_output=research_res.output)
-             )
-             yield StreamEvent(
-                workflow_id=workflow_id, 
-                event="step_complete", 
-                step="investment", 
-                status=investment_res.status, 
-                payload=investment_res
-             )
+                func=lambda: self.investment_agent.process(research_output=research_res.output),
+            )
+            yield StreamEvent(
+                workflow_id=workflow_id,
+                event="step_complete",
+                step="investment",
+                status=investment_res.status,
+                payload=investment_res,
+            )
         else:
-             investment_res = WorkflowStepResult(step_name="investment", status="skipped")
-             yield StreamEvent(workflow_id=workflow_id, event="step_complete", step="investment", status="skipped", payload=investment_res)
+            investment_res = WorkflowStepResult(step_name="investment", status="skipped")
+            yield StreamEvent(
+                workflow_id=workflow_id,
+                event="step_complete",
+                step="investment",
+                status="skipped",
+                payload=investment_res,
+            )
 
         # Overall Status
-        steps = [
-            retrieval_res, 
-            fundamental_res, 
-            news_res, 
-            research_res, 
-            investment_res
-        ]
+        steps = [retrieval_res, fundamental_res, news_res, research_res, investment_res]
         if any(s and s.status == "failed" for s in steps):
             final_status = "failed"
         elif investment_res.status == "completed":
             final_status = "completed"
         else:
             final_status = "partial"
-            
+
         yield StreamEvent(workflow_id=workflow_id, event="workflow_complete", status=final_status)
 
     async def _execute_step(
-        self, 
-        workflow_id: str, 
-        step_name: StepName, 
-        request: WorkflowRequest, 
-        func: callable
+        self, workflow_id: str, step_name: StepName, request: WorkflowRequest, func: callable
     ) -> WorkflowStepResult:
         # Check cache
         if not request.force_refresh:
@@ -292,21 +311,22 @@ class WorkflowOrchestrator:
             # We enforce a timeout
             output = await asyncio.wait_for(func(), timeout=DEFAULT_TIMEOUT_SECONDS)
             duration = int((time.monotonic() - start_mono) * 1000)
-            
+
             result = WorkflowStepResult(
-                step_name=step_name,
-                status="completed",
-                output=output,
-                duration_ms=duration
+                step_name=step_name, status="completed", output=output, duration_ms=duration
             )
             self._cache_result(workflow_id, result)
             return result
-            
-        except asyncio.TimeoutError:
+
+        except TimeoutError:
             duration = int((time.monotonic() - start_mono) * 1000)
             logger.error(f"Step {step_name} timed out after {DEFAULT_TIMEOUT_SECONDS}s")
-            return WorkflowStepResult(step_name=step_name, status="failed", warnings=["Timeout"], duration_ms=duration)
+            return WorkflowStepResult(
+                step_name=step_name, status="failed", warnings=["Timeout"], duration_ms=duration
+            )
         except Exception as e:
             duration = int((time.monotonic() - start_mono) * 1000)
             logger.exception(f"Step {step_name} failed: {e}")
-            return WorkflowStepResult(step_name=step_name, status="failed", warnings=[str(e)], duration_ms=duration)
+            return WorkflowStepResult(
+                step_name=step_name, status="failed", warnings=[str(e)], duration_ms=duration
+            )
