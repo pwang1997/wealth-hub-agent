@@ -189,11 +189,13 @@ class AggregationNode(NewsAnalystPipelineNode):
             sorted_signals = sorted(signals, key=lambda x: x[1], reverse=True)
             top_h = [s[2] for s in sorted_signals[:3]]
 
+            t_avg_weight = t_weight_sum / len(signals) if signals else 0.0
+
             state.ticker_rollups[ticker] = NewsTickerRollup(
                 ticker=ticker,
                 sentiment_score=round(t_score, 4),
                 sentiment_label=t_label,
-                relevance_score=round(t_weight_sum, 4),
+                relevance_score=round(t_avg_weight, 4),
                 top_headlines=top_h,
             )
 
