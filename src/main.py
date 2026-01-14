@@ -11,10 +11,12 @@ logging.basicConfig(
 )
 
 from src.routes.rag_route import router as rag_router
+from src.routes.workflow_route import router as workflow_router
 
 app = FastAPI(title="Wealth Hub Agent API", logger=logging.getLogger(__name__))
 
 app.include_router(rag_router)
+app.include_router(workflow_router)
 
 
 @app.get("/health")
