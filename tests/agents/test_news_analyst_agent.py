@@ -1,26 +1,24 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
-
-UTC = timezone.utc
+from datetime import UTC, datetime, timedelta
 
 from src.agents.analyst.news.news_analyst_agent import NewsAnalystAgent
 from src.agents.analyst.news.pipeline import AggregationNode, NewsAnalystPipelineState
 from src.models.news_sentiments import NewsSentiment, NewsTickerSentiment
-from src.models.retrieval_agent import RetrievalAgentOutput, RetrievalAgentMetadata
+from src.models.retrieval_agent import RetrievalAgentMetadata, RetrievalAgentOutput
 
 
 def test_aggregation_logic():
     async def run():
         agent = NewsAnalystAgent()
-        
+
         # Helper to create Alpha Vantage style timestamp
         def av_ts(dt: datetime) -> str:
             return dt.strftime("%Y%m%dT%H%M%S")
 
         now = datetime.now(UTC)
-        
+
         # 1. Duplicate headlines
         # 2. Different recency
         news = [
@@ -37,13 +35,13 @@ def test_aggregation_logic():
                         ticker="AAPL",
                         relevance_score="0.9",
                         ticker_sentiment_score="0.8",
-                        ticker_sentiment_label="Bullish"
+                        ticker_sentiment_label="Bullish",
                     )
                 ],
-                time_published=av_ts(now - timedelta(hours=1))
+                time_published=av_ts(now - timedelta(hours=1)),
             ),
             NewsSentiment(
-                title="Apple RELEASES NEW iphone", # Duplicate!
+                title="Apple RELEASES NEW iphone",  # Duplicate!
                 source="Source B",
                 url="url2",
                 summary="summary2",
@@ -55,10 +53,10 @@ def test_aggregation_logic():
                         ticker="AAPL",
                         relevance_score="0.9",
                         ticker_sentiment_score="0.8",
-                        ticker_sentiment_label="Bullish"
+                        ticker_sentiment_label="Bullish",
                     )
                 ],
-                time_published=av_ts(now - timedelta(hours=2))
+                time_published=av_ts(now - timedelta(hours=2)),
             ),
             NewsSentiment(
                 title="Irrelevant News",
@@ -114,24 +112,25 @@ def test_aggregation_logic():
 
         state = NewsAnalystPipelineState(retrieval_output=retrieval_output)
         node = AggregationNode()
-        
+
         await node.run(agent, state)
-        
+
         # Verify deduplication
         assert any("Deduplicated 1 articles" in w for w in state.warnings)
-        
+
         # Verify relevance and ticker filtering
         # 1. 'Irrelevant News' (relevance 0.5) skipped.
         # 2. 'NVIDIA Breakthrough' (wrong ticker NVDA) skipped.
         # 3. AAPL rollup based on Item #1 (Item #2 is duplicate).
+        RELEVANCE_THRESHOLD = 0.8
         assert "AAPL" in state.ticker_rollups
         assert state.ticker_rollups["AAPL"].sentiment_label == "bullish"
-        assert state.ticker_rollups["AAPL"].sentiment_score == 0.8
-        
+        assert state.ticker_rollups["AAPL"].sentiment_score == RELEVANCE_THRESHOLD
+
         # 'NVDA' or 'SPY' shouldn't be here
         assert "NVDA" not in state.ticker_rollups
         assert "SPY" not in state.ticker_rollups
-        
+
         # Only AAPL headlines should be in the rollups
         all_headlines = []
         for r in state.ticker_rollups.values():

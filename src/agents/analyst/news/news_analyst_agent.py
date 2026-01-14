@@ -1,5 +1,4 @@
 import logging
-from typing import Any # or just remove the line
 
 from src.agents.base_agent import BaseAgent
 from src.models.news_analyst import NewsAnalystOutput
@@ -35,9 +34,7 @@ class NewsAnalystAgent(BaseAgent):
         """
         Process the retrieval output to perform news sentiment analysis using a pipeline.
         """
-        logger.info(
-            f"Starting news sentiment analysis for query: {retrieval_output.query}"
-        )
+        logger.info(f"Starting news sentiment analysis for query: {retrieval_output.query}")
 
         state = NewsAnalystPipelineState(retrieval_output=retrieval_output)
         pipeline = NewsAnalystPipeline(
@@ -61,19 +58,15 @@ class NewsAnalystAgent(BaseAgent):
                 warnings=["Analysis pipeline failed to produce a result."],
             )
 
-        return self.format_output(
-            analysis=state.analysis, reasoning=state.objectives
-        )
+        return self.format_output(analysis=state.analysis, reasoning=state.objectives)
 
-    def format_output(
-        self, analysis: NewsAnalystOutput, reasoning: str = ""
-    ) -> NewsAnalystOutput:
+    def format_output(self, analysis: NewsAnalystOutput, reasoning: str = "") -> NewsAnalystOutput:
         """
         Finalize the NewsAnalystOutput with additional data like reasoning.
         """
         # Note: reasoning is the objectives/CoT from ReasoningNode
-        # In NewsAnalystOutput we don't have a reasoning field, 
-        # but we could add it if desired. The rationale field 
+        # In NewsAnalystOutput we don't have a reasoning field,
+        # but we could add it if desired. The rationale field
         # from SynthesisNode is the qualitative part.
         return analysis
 

@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import json
 import logging
 import math
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
-
-UTC = timezone.utc
+from datetime import UTC, datetime
 
 from openai import OpenAI
 
@@ -17,9 +14,13 @@ from src.agents.base_pipeline import BasePipeline, BasePipelineNode
 from src.models.news_analyst import NewsAnalystOutput, NewsTickerRollup
 from src.models.retrieval_agent import RetrievalAgentOutput
 
-from .prompt import format_synthesis_prompt, get_system_prompt
+from .prompt import format_synthesis_prompt
 
 logger = logging.getLogger(__name__)
+
+RELEVANCE_THRESHOLD = 0.8
+BULLISH_THRESHOLD = 0.25
+BEARISH_THRESHOLD = -0.25
 
 
 @dataclass
@@ -104,13 +105,15 @@ class AggregationNode(NewsAnalystPipelineNode):
         now = datetime.now(UTC)
         total_weighted_score = 0.0
         total_weight = 0.0
-        
-        ticker_data = {} # ticker -> list of (weighted_score, weight, headline)
+
+        ticker_data = {}  # ticker -> list of (weighted_score, weight, headline)
 
         for item in unique_news:
             try:
                 # Alpha Vantage format: 20240124T123205
-                pub_date = datetime.strptime(item.time_published, "%Y%m%dT%H%M%S").replace(tzinfo=UTC)
+                pub_date = datetime.strptime(item.time_published, "%Y%m%dT%H%M%S").replace(
+                    tzinfo=UTC
+                )
             except ValueError:
                 try:
                     pub_date = datetime.fromisoformat(item.time_published).replace(tzinfo=UTC)
@@ -121,7 +124,7 @@ class AggregationNode(NewsAnalystPipelineNode):
             delta_hours = (now - pub_date).total_seconds() / 3600.0
             decay_lambda = math.log(2) / 24.0
             recency_weight = math.exp(-decay_lambda * delta_hours)
-            
+
             # Ticker rollups - only care about the target ticker if highly relevant (> 0.8)
             item_is_relevant_to_target = False
             for ts in item.ticker_sentiment:
@@ -135,12 +138,11 @@ class AggregationNode(NewsAnalystPipelineNode):
                 except (ValueError, TypeError):
                     rel_score = 0.0
                     ts_score = 0.0
-                
-                if rel_score > 0.8:
+                if rel_score > RELEVANCE_THRESHOLD:
                     item_is_relevant_to_target = True
                     if ticker not in ticker_data:
                         ticker_data[ticker] = []
-                    
+
                     # Weight by ticker-specific relevance AND recency
                     t_weight = rel_score * recency_weight
                     ticker_data[ticker].append((ts_score * t_weight, t_weight, item.title))
@@ -163,9 +165,9 @@ class AggregationNode(NewsAnalystPipelineNode):
             state.overall_score = 0.0
 
         # Mapping thresholds
-        if state.overall_score >= 0.25:
+        if state.overall_score >= BULLISH_THRESHOLD:
             state.overall_label = "bullish"
-        elif state.overall_score <= -0.25:
+        elif state.overall_score <= BEARISH_THRESHOLD:
             state.overall_label = "bearish"
         else:
             state.overall_label = "neutral"
@@ -175,10 +177,10 @@ class AggregationNode(NewsAnalystPipelineNode):
             t_weighted_sum = sum(s[0] for s in signals)
             t_weight_sum = sum(s[1] for s in signals)
             t_score = t_weighted_sum / t_weight_sum if t_weight_sum > 0 else 0.0
-            
-            if t_score >= 0.25:
+
+            if t_score >= BULLISH_THRESHOLD:
                 t_label = "bullish"
-            elif t_score <= -0.25:
+            elif t_score <= BEARISH_THRESHOLD:
                 t_label = "bearish"
             else:
                 t_label = "neutral"
@@ -192,7 +194,7 @@ class AggregationNode(NewsAnalystPipelineNode):
                 sentiment_score=round(t_score, 4),
                 sentiment_label=t_label,
                 relevance_score=round(t_weight_sum, 4),
-                top_headlines=top_h
+                top_headlines=top_h,
             )
 
         logger.info(f"AggregationNode completed. Overall score: {state.overall_score:.4f}")
@@ -210,30 +212,32 @@ class SynthesisNode(NewsAnalystPipelineNode):
         # Top 5 headlines overall (by recency weight)
         # We didn't store overall weights in state, so we just pick from unique_news if we had them or just use ticker data
         # Let's just use ticker rollups for the prompt context
-        ticker_summaries = "\n".join([
-            f"- {t}: {r.sentiment_label} (score: {r.sentiment_score})"
-            for t, r in state.ticker_rollups.items()
-        ])
-        
+        ticker_summaries = "\n".join(
+            [
+                f"- {t}: {r.sentiment_label} (score: {r.sentiment_score})"
+                for t, r in state.ticker_rollups.items()
+            ]
+        )
+
         # Collect top headlines from all rollups for synthesis
         all_top_headlines = set()
         for r in state.ticker_rollups.values():
             all_top_headlines.update(r.top_headlines)
-        
+
         prompt = format_synthesis_prompt(
             state.retrieval_output.query,
             state.overall_score,
             state.overall_label,
             list(all_top_headlines)[:5],
-            ticker_summaries
+            ticker_summaries,
         )
 
         response = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": agent.get_system_prompt()},
-                {"role": "user", "content": prompt}
-            ]
+                {"role": "user", "content": prompt},
+            ],
         )
         rationale = response.choices[0].message.content or "No rationale provided."
 
@@ -244,6 +248,6 @@ class SynthesisNode(NewsAnalystPipelineNode):
             rationale=rationale,
             ticker_rollups=list(state.ticker_rollups.values()),
             news_items=state.retrieval_output.market_news,
-            warnings=state.warnings
+            warnings=state.warnings,
         )
         logger.info("SynthesisNode completed.")
