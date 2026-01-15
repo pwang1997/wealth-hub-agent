@@ -1,44 +1,66 @@
 # Wealth Hub Agent
 
-Wealth Hub Agent is a sophisticated financial analysis platform powered by an agentic AI architecture. It leverages stylized LLM agents to perform tasks ranging from fundamental analysis and news synthesis to RAG-based (Retrieval-Augmented Generation) information retrieval.
+Wealth Hub Agent is a sophisticated financial analysis platform powered by a multi-agent AI architecture. It leverages specialized LLM agents and the **Model Context Protocol (MCP)** to perform deep fundamental analysis, news synthesis, and RAG-based (Retrieval-Augmented Generation) information retrieval.
 
 ## 🚀 Key Features
 
-- **Multi-Agent Architecture**: Specialized agents for different financial analysis tasks.
-  - **Fundamental Analyst**: Analyzes company financials and performance metrics.
-  - **News Analyst**: Aggregates, deduplicates, and synthesizes market news with recency weighting.
-  - **Retrieval Agent**: Performs semantic search and retrieval across financial documents.
-- **Extensible Tooling**: A robust set of tools for interacting with financial data sources (Alpha Vantage, Finnhub, EDGAR).
-- **Agent Pipelines**: Structured processing workflows for agent reasoning and execution.
-- **FastAPI Integration**: A production-ready API for interacting with the agentic service.
-- **Modern CLI**: An interactive command-line interface for local agent interaction and testing.
+- **Multi-Agent Orchestration**: A structured workflow that coordinates specialized agents for end-to-end financial research.
+- **Model Context Protocol (MCP)**: Seamless integration with financial data tools (Alpha Vantage, Finnhub, SEC EDGAR) via MCP servers.
+- **Advanced RAG Pipeline**: Intelligent document retrieval and indexing using LlamaIndex and ChromaDB.
+- **Parallel Processing**: Simultaneous execution of fundamental and news analysis steps for improved performance.
+- **Stateful Workflows**: Built-in caching (Diskcache) and partial execution support (run until a specific step).
+- **Modern Interfaces**: Includes both a production-ready FastAPI service and an interactive Rich-based CLI/TUI.
+
+## 🤖 Agent Architecture
+
+The project employs a set of specialized agents, each focused on a specific domain:
+
+1.  **Analyst Retrieval Agent**: Performs semantic search across financial documents and fetches real-time market news.
+2.  **Fundamental Analyst Agent**: Analyzes company financials, performance metrics, and valuation drivers.
+3.  **News Analyst Agent**: Aggregates and synthesizes market news, applying deduplication and recency weighting.
+4.  **Research Analyst Agent**: Merges fundamental and news insights into a cohesive research report.
+5.  **Investment Manager Agent**: Provides actionable investment recommendations based on the synthesized research.
+
+## 🔄 Workflow Orchestration
+
+Workflows are managed by the `WorkflowOrchestrator`, following a canonical sequence:
+
+[![](https://mermaid.ink/img/pako:eNpdj01PhDAQhv9KM2eWLN_Qg8kuaOJBD8aTwGGyjECkhZSyuhL-u4VVD9tTn3n6zkxnOPUVAYda4dCw16yQzJxD_kJatXTGjh1qkrpku90dO-YPk6xQmMIqJHaXUZe_ke1Fmj_T53ijjpvKTM-RUJ2aG51e9RWyDe7zR3mmUa-T2BNKrEmVYJkt2wq4VhNZIEgJXBHmNVqAbkhQAdxcK1QfBRRyMZkB5Vvfi7-Y6qe6Af6O3WhoGirUlLVo_i_-q4pkRSrtJ6mBe-HWA_gMX4bi2Hb3Xui4SRIkceJYcAHuB7bj-kkURoEXBmHiLxZ8b0P3dhwFyw8Ys22_?type=png)](https://mermaid.live/edit#pako:eNpdj01PhDAQhv9KM2eWLN_Qg8kuaOJBD8aTwGGyjECkhZSyuhL-u4VVD9tTn3n6zkxnOPUVAYda4dCw16yQzJxD_kJatXTGjh1qkrpku90dO-YPk6xQmMIqJHaXUZe_ke1Fmj_T53ijjpvKTM-RUJ2aG51e9RWyDe7zR3mmUa-T2BNKrEmVYJkt2wq4VhNZIEgJXBHmNVqAbkhQAdxcK1QfBRRyMZkB5Vvfi7-Y6qe6Af6O3WhoGirUlLVo_i_-q4pkRSrtJ6mBe-HWA_gMX4bi2Hb3Xui4SRIkceJYcAHuB7bj-kkURoEXBmHiLxZ8b0P3dhwFyw8Ys22_)
 
 ## 🛠 Tech Stack
 
-- **Language**: Python 3.13
-- **Framework**: [FastAPI](https://fastapi.tiangolo.com/)
-- **AI/LLM**: [OpenAI](https://openai.com/), [LlamaIndex](https://www.llamaindex.ai/)
-- **Database**: [ChromaDB](https://www.trychroma.com/) (Vector Store)
-- **Tooling**: `uv` for dependency management, `make` for task automation.
-- **Integrations**: Finnhub, Alpha Vantage, SEC EDGAR.
+- **Runtime**: Python 3.13 (managed via `uv`)
+- **API Framework**: FastAPI + Uvicorn
+- **Agent Framework**: Model Context Protocol (MCP), LlamaIndex
+- **AI Models**: OpenAI GPT-4o / GPT-4-turbo
+- **Vector Database**: ChromaDB
+- **Caching**: Diskcache
+- **CLI/TUI**: Rich (Interactive live layout)
+- **Data Sources**: Finnhub (WebSocket & REST), Alpha Vantage, SEC EDGAR
 
 ## 📁 Project Structure
 
 ```text
 wealth-hub-agent/
-├── cli/                # Interactive command-line interface
-├── clients/            # Client libraries for external services
-├── openspec/           # Project specifications and guidelines
+├── cli/                # Interactive TUI and command-line entry points
+├── clients/            # Low-level clients for external service integrations
+├── openspec/           # Project specifications and formal change proposals
 ├── src/                # Core application logic
-│   ├── agents/         # Agent implementations (Fundamental, News, Retrieval)
-│   ├── agent_tools/    # Reusable tools for agents (Data providers, RAG)
-│   ├── models/         # Pydantic data models
-│   ├── routes/         # FastAPI route definitions
-│   └── main.py         # API entry point
-├── tests/              # Automated test suite
-├── AGENTS.md           # Developer guidelines for agent development
-├── Makefile            # Automation targets
-└── pyproject.toml      # Project dependencies and configuration
+│   ├── agents/         # Specialized agent definitions (Analyst, Manager, etc.)
+│   ├── agent_tools/    # MCP tool implementations and resource managers
+│   ├── factory/        # Component factories (e.g., MCP server factory)
+│   ├── models/         # Pydantic data models for structured IO
+│   ├── orchestrator/   # Workflow sequencing and state management
+│   ├── routes/         # FastAPI router definitions
+│   ├── scripts/        # Internal utility and maintenance scripts
+│   ├── utils/          # Cross-cutting utilities and configuration modules
+│   └── main.py         # FastAPI service entry point
+├── tests/              # Comprehensive unit and integration test suite
+├── web/                # Next.js frontend for visual interaction
+├── AGENTS.md           # Guidelines for agent development and conventions
+├── Makefile            # Automation targets for common developer tasks
+├── pyproject.toml      # Dependency management and tool configuration
+└── stock_config.yml    # Configuration for tracked ticker symbols
 ```
 
 ## 🚦 Getting Started
@@ -46,52 +68,35 @@ wealth-hub-agent/
 ### Prerequisites
 
 - Python 3.13
-- `uv` (Fast Python package installer and resolver)
+- `uv` (Fast Python package installer)
 
 ### Installation
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd wealth-hub-agent
-   ```
-
-2. Install dependencies using the Makefile:
+1. Clone the repository and navigate to the directory.
+2. Install dependencies:
    ```bash
    make install
    ```
-
 3. Configure environment variables:
    - Copy `.env.example` to `.env`
-   - Fill in your API keys (OpenAI, Finnhub, Alpha Vantage, etc.)
+   - Add your API keys for OpenAI, Finnhub, and Alpha Vantage.
 
-### Running the Application
+### Running the System
 
-#### Development Server (API)
-```bash
-make dev
-```
-The API will be available at `http://localhost:8000`. You can access the health check at `/health`.
+- **FastAPI Server**: `make dev` (Runs at `http://localhost:8000`)
+- **Interactive CLI**: `make cli` (Requires `make mcp` to be running for full tool access)
+- **MCP Servers**: `make mcp` (Starts the underlying tool servers)
 
-#### Interactive CLI
-```bash
-uv run python -m cli.main
-```
+## 🧪 Testing
 
-## 🧪 Testing & Validation
-
-Run the full test suite:
+Run the automated test suite to verify the system:
 ```bash
 make test
 ```
 
-## 📜 Development Guidelines
+## 📜 Guidelines
 
-Please refer to [AGENTS.md](AGENTS.md) for detailed information on:
-- Project conventions and coding style.
-- Creating and applying change proposals.
-- Agent development patterns and pipelines.
-- Deployment notes.
+For detailed information on contributing, agent development patterns, and the proposal-based development flow, see [AGENTS.md](AGENTS.md).
 
 ---
-Built with ❤️ by the Wealth Hub Team.
+Built with ❤️ for advanced financial intelligence.
