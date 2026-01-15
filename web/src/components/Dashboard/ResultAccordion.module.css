@@ -1,0 +1,68 @@
+.accordion {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.header {
+  width: 100%;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  transition: all 0.3s;
+  color: var(--foreground);
+}
+
+.header:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.header[data-open="true"] {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.chevron {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  color: var(--text-muted);
+}
+
+.header[data-open="true"] .chevron {
+  transform: rotate(180deg);
+}
+
+.content {
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: none;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  padding: 1.5rem;
+  overflow: hidden;
+  transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+}
+
+.badge {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.badgeSuccess {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--accent-primary);
+}

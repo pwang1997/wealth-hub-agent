@@ -1,0 +1,84 @@
+.stepper {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 2rem 0;
+  position: relative;
+}
+
+.stepper::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  z-index: 1;
+  position: relative;
+  flex: 1;
+}
+
+.circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #0f0f0f;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  color: var(--text-muted);
+}
+
+.step[data-status="completed"] .circle {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #000;
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.step[data-status="running"] .circle {
+  border-color: var(--accent-secondary);
+  color: var(--accent-secondary);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+}
+
+.label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.step[data-status="completed"] .label,
+.step[data-status="running"] .label {
+  color: var(--foreground);
+}
+
+.timer {
+  font-size: 0.75rem;
+  color: var(--accent-secondary);
+  font-family: monospace;
+  margin-top: 4px;
+}
+
+/* Connectors */
+.connector {
+  position: absolute;
+  top: 24px;
+  height: 2px;
+  background: var(--accent-primary);
+  z-index: 0;
+  transition: width 0.5s ease-in-out;
+}
