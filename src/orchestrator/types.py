@@ -1,13 +1,33 @@
 from __future__ import annotations
 
+from enum import Enum, StrEnum
 from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-StepName = Literal["retrieval", "fundamental", "news", "research", "investment"]
-WorkflowStatus = Literal["running", "completed", "failed", "partial"]
-StepStatus = Literal["pending", "running", "completed", "skipped", "failed"]
+
+class StepName(StrEnum):
+    RETRIEVAL = "retrieval"
+    FUNDAMENTAL = "fundamental"
+    NEWS = "news"
+    RESEARCH = "research"
+    INVESTMENT = "investment"
+
+
+class WorkflowStatus(StrEnum):
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    PARTIAL = "partial"
+
+
+class StepStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    SKIPPED = "skipped"
+    FAILED = "failed"
 
 
 class WorkflowRequest(BaseModel):
