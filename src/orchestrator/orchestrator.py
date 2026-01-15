@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-
+import os
 from diskcache import Cache
 
 from src.agents.analyst.fundamental.fundamental_analyst_agent import FundamentalAnalystAgent
@@ -29,9 +29,11 @@ STEP_ORDER: list[StepName] = ["retrieval", "fundamental", "news", "research", "i
 DEFAULT_TIMEOUT_SECONDS = 60.0
 CACHE_TTL_SECONDS = 86400  # 24 hours
 
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+cache_dir = os.path.join(base_dir, ".workflow_cache")
 
 class WorkflowOrchestrator:
-    def __init__(self, cache_dir: str = "/tmp/wealth_hub_workflow_cache"):
+    def __init__(self, cache_dir: str = cache_dir):
         self.cache = Cache(cache_dir)
 
         # Initialize agents
