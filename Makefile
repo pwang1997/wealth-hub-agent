@@ -1,9 +1,12 @@
-.PHONY: dev cli lint lint-fix test clean-install test-workflow
+.PHONY: dev cli lint lint-fix test clean-install test-workflow web
 
 dev:
 	uv sync --extra dev
 	set -a; source .env; set +a
 	uv run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+
+web:
+	cd web && npm install && npm run dev
 
 cli:
 	uv run ./cli/main.py
