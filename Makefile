@@ -31,7 +31,4 @@ clean-install:
 test-workflow:
 	curl -N -X POST http://localhost:8000/v1/workflow/stream \
 		-H "Content-Type: application/json" \
-		-d '{
-			"query": "Is Apple a good investment?",
-			"ticker": "AAPL"
-		}'
+		-d '{"query": "Is Apple a good investment?","ticker": "AAPL"}'

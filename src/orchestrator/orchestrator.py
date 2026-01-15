@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 import os
+import time
+import uuid
+
 from diskcache import Cache
 
 from src.agents.analyst.fundamental.fundamental_analyst_agent import FundamentalAnalystAgent
@@ -31,6 +33,7 @@ CACHE_TTL_SECONDS = 86400  # 24 hours
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 cache_dir = os.path.join(base_dir, ".workflow_cache")
+
 
 class WorkflowOrchestrator:
     def __init__(self, cache_dir: str = cache_dir):
@@ -76,21 +79,16 @@ class WorkflowOrchestrator:
         Executes the workflow and returns the final response object.
         """
         final_response = WorkflowResponse(
-            workflow_id=workflow_id or request.workflow_id or f"wf_{time.time()}", status="running"
+            workflow_id=workflow_id or request.workflow_id or f"wf_{uuid.uuid4()!s}",
+            status="running",
         )
 
         async for event in self.workflow_generator(request, final_response.workflow_id):
             if event.event == "step_complete":
-                if event.step == "retrieval":
-                    final_response.retrieval = event.payload
-                elif event.step == "fundamental":
-                    final_response.fundamental = event.payload
-                elif event.step == "news":
-                    final_response.news = event.payload
-                elif event.step == "research":
-                    final_response.research = event.payload
-                elif event.step == "investment":
-                    final_response.investment = event.payload
+                if event.step:
+                    setattr(final_response, event.step, event.payload)
+                else:
+                    raise ValueError(f"Step complete event without step: {event}")
             elif event.event == "workflow_complete":
                 final_response.status = event.status  # type: ignore
 
@@ -100,6 +98,24 @@ class WorkflowOrchestrator:
         """
         Yields StreamEvents as the workflow progresses.
         """
+        # Validate steps
+        if request.until_step and request.until_step not in STEP_ORDER:
+            raise ValueError(
+                f"Invalid until_step: {request.until_step}. Must be one of {STEP_ORDER}"
+            )
+
+        if request.only_steps:
+            for step in request.only_steps:
+                if step not in STEP_ORDER:
+                    raise ValueError(
+                        f"Invalid step in only_steps: {step}. Must be one of {STEP_ORDER}"
+                    )
+
+            # check order
+            indices = [STEP_ORDER.index(s) for s in request.only_steps]
+            if indices != sorted(indices):
+                raise ValueError(f"Steps in only_steps must be in canonical order: {STEP_ORDER}")
+
         yield StreamEvent(workflow_id=workflow_id, event="step_start", step="retrieval")
 
         # 1. Retrieval
