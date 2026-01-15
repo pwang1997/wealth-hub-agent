@@ -12,8 +12,17 @@ logging.basicConfig(
 
 from src.routes.rag_route import router as rag_router
 from src.routes.workflow_route import router as workflow_router
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Wealth Hub Agent API", logger=logging.getLogger(__name__))
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(rag_router)
 app.include_router(workflow_router)
