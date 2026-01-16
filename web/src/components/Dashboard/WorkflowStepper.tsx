@@ -37,8 +37,8 @@ const WorkflowStepper: React.FC<WorkflowStepperProps> = ({ steps }) => {
                     </div>
                     <div className={styles.label}>
                         {step.label}
-                        {step.status === 'running' && step.duration !== undefined && (
-                            <div className={styles.timer}>{step.duration}s</div>
+                        {(step.duration !== undefined && step.duration > 0 || step.status === 'running') && (
+                            <div className={styles.timer}>{step.duration || 0}s</div>
                         )}
                     </div>
                 </div>

@@ -123,6 +123,10 @@ export function useWorkflow() {
               setState(prev => ({
                 ...prev,
                 steps: { ...prev.steps, [event.step]: event.status },
+                durations: { 
+                  ...prev.durations, 
+                  [event.step]: event.payload.duration_ms ? Math.round(event.payload.duration_ms / 1000) : prev.durations[event.step as keyof typeof prev.durations]
+                },
                 results: { ...prev.results, [event.step]: event.payload.output }
               }));
               stopTimer(event.step);
