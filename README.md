@@ -1,5 +1,7 @@
 # Wealth Hub Agent
 
+[![Pull Request Tests](https://github.com/pwang1997/wealth-hub-agent/actions/workflows/pull-request-tests.yml/badge.svg?branch=main)](https://github.com/pwang1997/wealth-hub-agent/actions/workflows/pull-request-tests.yml)
+
 Wealth Hub Agent is a high-performance financial intelligence platform powered by a multi-agent AI architecture. It leverages specialized LLM agents and the **Model Context Protocol (MCP)** to perform deep fundamental analysis, news synthesis, and RAG-based (Retrieval-Augmented Generation) information retrieval, all delivered through a real-time, agent-centric dashboard.
 
 ## 🚀 Key Features
