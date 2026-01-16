@@ -125,7 +125,9 @@ export function useWorkflow() {
                 steps: { ...prev.steps, [event.step]: event.status },
                 durations: { 
                   ...prev.durations, 
-                  [event.step]: event.payload.duration_ms ? Math.round(event.payload.duration_ms / 1000) : prev.durations[event.step as keyof typeof prev.durations]
+                  [event.step]: typeof event.payload.duration_ms === 'number' 
+                    ? Math.round(event.payload.duration_ms / 1000) 
+                    : (prev.durations[event.step as keyof typeof prev.durations] || 0)
                 },
                 results: { ...prev.results, [event.step]: event.payload.output }
               }));

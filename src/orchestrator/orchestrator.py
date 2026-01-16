@@ -38,7 +38,7 @@ STEP_ORDER: list[StepName] = [
 # Note: 'fundamental' and 'news' are parallel, but strictly after retrieval and before research.
 # For 'until' logic, we consider them at the same "level".
 
-DEFAULT_TIMEOUT_SECONDS = 60.0
+DEFAULT_TIMEOUT_SECONDS = 120.0
 CACHE_TTL_SECONDS = 86400  # 24 hours
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

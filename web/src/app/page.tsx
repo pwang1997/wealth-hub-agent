@@ -2,9 +2,9 @@
 
 import InvestmentDecision from '@/components/Dashboard/InvestmentDecision';
 import ResultAccordion from '@/components/Dashboard/ResultAccordion';
-import WorkflowStepper, { Step } from '@/components/Dashboard/WorkflowStepper';
+import { Step } from '@/components/Dashboard/WorkflowStepper';
 import { useWorkflow } from '@/lib/useWorkflow';
-import { Briefcase, LayoutDashboard, Search, Settings, TrendingUp } from 'lucide-react';
+import { Briefcase, LayoutDashboard, Loader2, Search, Settings, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Home() {
@@ -21,141 +21,149 @@ export default function Home() {
   ];
 
   return (
-    <div className="flex" style={{ height: '100vh' }}>
+    <div className="flex h-screen">
       {/* Sidebar */}
-      <aside className="glass-panel" style={{ width: '280px', margin: '1rem', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ width: '40px', height: '40px', background: 'var(--accent-primary)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000' }}>
+      <aside className="glass-panel w-[280px] m-4 flex flex-col">
+        <div className="p-8 flex items-center gap-4">
+          <div className="w-10 h-10 bg-accent-primary rounded-sm flex items-center justify-center text-black">
             <TrendingUp size={24} />
           </div>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Wealth Hub</h1>
+          <h1 className="text-xl font-bold tracking-tight">Wealth Hub</h1>
         </div>
 
-        <nav style={{ padding: '0 1rem', flex: 1 }}>
+        <nav className="px-4 flex-1">
           {[
             { icon: <LayoutDashboard size={20} />, label: 'Dashboard', active: true },
             { icon: <Briefcase size={20} />, label: 'Portfolio' },
             { icon: <Search size={20} />, label: 'Market Analysis' },
             { icon: <Settings size={20} />, label: 'Settings' },
           ].map((item, idx) => (
-            <div key={idx} className="glass-card" style={{
-              padding: '0.8rem 1rem',
-              marginBottom: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              cursor: 'pointer',
-              color: item.active ? 'var(--foreground)' : 'var(--text-muted)'
-            }}>
+            <div
+              key={idx}
+              className={`glass-card p-3 mb-2 flex items-center gap-3 cursor-pointer ${item.active ? 'text-foreground' : 'text-text-muted'}`}
+            >
               {item.icon}
-              <span style={{ fontWeight: 500 }}>{item.label}</span>
+              <span className="font-medium text-sm">{item.label}</span>
             </div>
           ))}
         </nav>
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, overflowY: 'auto', padding: '2rem 3rem' }}>
-        <header style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 600, marginBottom: '0.5rem' }}>AI Market Analyst</h2>
-            <p className="text-muted">Enter a ticker and research objective to initiate an agent workflow.</p>
-          </div>
-          <div className="glass-card" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-primary)' }}></div>
-            <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>System Status: Operational</span>
-          </div>
-        </header>
+      <main className="flex-1 overflow-y-auto px-12 py-8">
+        <div className="max-w-[1000px] mx-auto w-full">
+          <header className="mb-12 flex justify-between items-center">
+            <div>
+              <h2 className="text-3xl font-semibold mb-2">AI Market Analyst</h2>
+              <p className="text-text-muted text-sm">Enter a ticker and research objective to initiate an agent workflow.</p>
+            </div>
+            <div className="glass-card px-4 py-2 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-accent-primary shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+              <span className="text-[0.75rem] font-medium uppercase tracking-wider">System Operational</span>
+            </div>
+          </header>
 
-        {/* Search Controls */}
-        <section className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem' }}>
-          <div className="flex gap-4" style={{ marginBottom: '1.5rem' }}>
-            <div style={{ flex: 1 }}>
-              <label className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Ticker Symbol</label>
-              <input
-                type="text"
-                value={ticker}
-                onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '0.75rem 1rem', color: '#fff', fontSize: '1rem' }}
-              />
+          {/* Search Controls */}
+          <section className="glass-panel p-8 mb-8">
+            <div className="flex gap-4 mb-6">
+              <div className="flex-1">
+                <label className="text-text-muted text-[0.65rem] uppercase font-bold tracking-widest block mb-2">Ticker Symbol</label>
+                <input
+                  type="text"
+                  value={ticker}
+                  onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                  className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-white text-base focus:outline-none focus:border-accent-primary transition-all"
+                  placeholder="e.g. NVDA"
+                />
+              </div>
+              <div className="flex-[3]">
+                <label className="text-text-muted text-[0.65rem] uppercase font-bold tracking-widest block mb-2">Research Query</label>
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-white text-base focus:outline-none focus:border-accent-primary transition-all"
+                  placeholder="What would you like the agents to analyze?"
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  className={`btn-primary h-[50px] px-8 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  onClick={() => runWorkflow(ticker, query)}
+                  disabled={state.status === 'running'}
+                >
+                  {state.status === 'running' ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 size={18} className="animate-spin" />
+                      <span>Analyzing...</span>
+                    </div>
+                  ) : 'Run Analysis'}
+                </button>
+              </div>
             </div>
-            <div style={{ flex: 3 }}>
-              <label className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Research Query</label>
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '0.75rem 1rem', color: '#fff', fontSize: '1rem' }}
-              />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-              <button
-                className="btn-primary"
-                onClick={() => runWorkflow(ticker, query)}
-                disabled={state.status === 'running'}
-                style={{ height: '48px', padding: '0 2rem' }}
-              >
-                {state.status === 'running' ? 'Running Analysis...' : 'Run Analysis'}
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Workflow Progress */}
-        {state.status !== 'idle' && (
-          <section className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem' }}>
-            <WorkflowStepper steps={stepsData} />
           </section>
-        )}
 
-        {/* Results */}
-        <section style={{ maxWidth: '900px', margin: '0 auto' }}>
-          {state.results.investment && (
-            <InvestmentDecision
-              ticker={ticker}
-              decision={state.results.investment.decision}
-              confidence={state.results.investment.confidence}
-              rationale={state.results.investment.rationale}
-            />
-          )}
+          {/* Results */}
+          <section className="pb-12">
+            <div className="space-y-4">
+              {state.steps.retrieval !== 'pending' && (
+                <ResultAccordion title="Data Retrieval Results" status={state.steps.retrieval}>
+                  <div className="text-[0.9rem] text-text-muted leading-relaxed">
+                    <p className="mb-3">Successfully retrieved and processed regulatory filings and news for <span className="text-foreground font-medium">{ticker}</span>.</p>
+                    <p><strong>Synthesized Context:</strong> {state.results.retrieval?.answer}</p>
+                  </div>
+                </ResultAccordion>
+              )}
 
-          <div style={{ marginTop: '2rem' }}>
-            {state.results.retrieval && (
-              <ResultAccordion title="Data Retrieval Results">
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                  <p>Successfully retrieved data for {ticker}.</p>
-                  <p style={{ marginTop: '0.5rem' }}><strong>Answer:</strong> {state.results.retrieval.answer}</p>
+              {state.steps.fundamental !== 'pending' && (
+                <ResultAccordion title="Fundamental Analysis Summary" status={state.steps.fundamental}>
+                  <div className="text-[0.9rem] text-text-muted leading-relaxed">
+                    <div className="flex items-center gap-3 mb-4 bg-white/5 p-3 rounded-sm w-fit">
+                      <span className="text-xs uppercase font-bold tracking-tighter">Health Score</span>
+                      <span className="text-2xl font-black text-accent-primary">{state.results.fundamental?.health_score}<span className="text-sm font-normal text-text-muted">/10</span></span>
+                    </div>
+                    <p>{state.results.fundamental?.summary}</p>
+                  </div>
+                </ResultAccordion>
+              )}
+
+              {state.steps.news !== 'pending' && (
+                <ResultAccordion title="News Sentiment Analysis" status={state.steps.news}>
+                  <div className="text-[0.9rem] text-text-muted leading-relaxed">
+                    <div className="flex items-center gap-3 mb-4 bg-white/5 p-3 rounded-sm w-fit">
+                      <span className="text-xs uppercase font-bold tracking-tighter">Overall Sentiment</span>
+                      <span className={`text-sm font-bold uppercase ${state.results.news?.overall_sentiment_score > 0 ? 'text-accent-primary' : 'text-red-400'}`}>
+                        {state.results.news?.overall_sentiment_label} ({state.results.news?.overall_sentiment_score})
+                      </span>
+                    </div>
+                    <p>{state.results.news?.rationale}</p>
+                  </div>
+                </ResultAccordion>
+              )}
+
+              {state.steps.research !== 'pending' && (
+                <ResultAccordion title="Research Synthesis" status={state.steps.research}>
+                  <div className="text-[0.9rem] text-text-muted leading-relaxed">
+                    {state.results.research?.composed_analysis.split('\n').map((para: string, i: number) => (
+                      <p key={i} className={i > 0 ? "mt-3" : ""}>{para}</p>
+                    ))}
+                  </div>
+                </ResultAccordion>
+              )}
+
+              {state.steps.investment === 'completed' && state.results.investment && (
+                <div className="animate-in zoom-in-95 duration-1000 slide-in-from-bottom-8 mt-12">
+                  <InvestmentDecision
+                    ticker={ticker}
+                    decision={state.results.investment.decision}
+                    confidence={state.results.investment.confidence}
+                    rationale={state.results.investment.rationale}
+                  />
                 </div>
-              </ResultAccordion>
-            )}
-
-            {state.results.fundamental && (
-              <ResultAccordion title="Fundamental Analysis Summary">
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                  <p><strong>Health Score:</strong> {state.results.fundamental.health_score} / 10</p>
-                  <p style={{ marginTop: '0.5rem' }}>{state.results.fundamental.summary}</p>
-                </div>
-              </ResultAccordion>
-            )}
-
-            {state.results.news && (
-              <ResultAccordion title="News Sentiment Analysis">
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                  <p><strong>Overall Sentiment:</strong> {state.results.news.overall_sentiment_label} ({state.results.news.overall_sentiment_score})</p>
-                  <p style={{ marginTop: '0.5rem' }}>{state.results.news.rationale}</p>
-                </div>
-              </ResultAccordion>
-            )}
-
-            {state.results.research && (
-              <ResultAccordion title="Research Synthesis">
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                  <p>{state.results.research.composed_analysis}</p>
-                </div>
-              </ResultAccordion>
-            )}
-          </div>
-        </section>
+              )}
+            </div>
+          </section>
+        </div>
       </main>
     </div>
   );
