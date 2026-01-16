@@ -2,7 +2,6 @@
 
 import InvestmentDecision from '@/components/Dashboard/InvestmentDecision';
 import ResultAccordion from '@/components/Dashboard/ResultAccordion';
-import { Step } from '@/components/Dashboard/WorkflowStepper';
 import { useWorkflow } from '@/lib/useWorkflow';
 import { LayoutDashboard, Loader2, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
@@ -11,14 +10,6 @@ export default function Home() {
   const [ticker, setTicker] = useState('NVDA');
   const [query, setQuery] = useState('Analyze the impact of recent AI chip regulations on long-term growth.');
   const { state, runWorkflow } = useWorkflow();
-
-  const stepsData: Step[] = [
-    { id: 'retrieval', label: 'Data Retrieval', status: state.steps.retrieval, duration: state.durations.retrieval },
-    { id: 'fundamental', label: 'Fundamental Analysis', status: state.steps.fundamental, duration: state.durations.fundamental },
-    { id: 'news', label: 'News Sentiment', status: state.steps.news, duration: state.durations.news },
-    { id: 'research', label: 'Research Synthesis', status: state.steps.research, duration: state.durations.research },
-    { id: 'investment', label: 'Investment Decision', status: state.steps.investment, duration: state.durations.investment },
-  ];
 
   return (
     <div className="flex h-screen">
@@ -104,6 +95,19 @@ export default function Home() {
           </section>
 
           {/* Results */}
+          {state.steps.investment === 'completed' && state.results.investment && (
+            <div className="animate-in zoom-in-95 duration-1000 slide-in-from-bottom-8 mt-12">
+              <div className="glass-panel p-8 mb-8 text-center relative overflow-hidden flex flex-col items-center gap-6">
+                <InvestmentDecision
+                  ticker={ticker}
+                  decision={state.results?.investment?.decision}
+                  confidence={state.results?.investment?.confidence}
+                  rationale={""}
+                />
+              </div>
+            </div>
+          )}
+
           <section className="pb-12">
             <div className="space-y-4">
               {state.steps.retrieval !== 'pending' && (
@@ -151,15 +155,19 @@ export default function Home() {
                 </ResultAccordion>
               )}
 
-              {state.steps.investment === 'completed' && state.results.investment && (
-                <div className="animate-in zoom-in-95 duration-1000 slide-in-from-bottom-8 mt-12">
-                  <InvestmentDecision
-                    ticker={ticker}
-                    decision={state.results.investment.decision}
-                    confidence={state.results.investment.confidence}
-                    rationale={state.results.investment.rationale}
-                  />
-                </div>
+              {state.steps.investment !== 'pending' && (
+                <ResultAccordion title="Investment Decision" status={state.steps.investment}>
+                  <div className="text-[0.9rem] text-text-muted leading-relaxed">
+                    <div className="p-8 mb-8 text-center relative overflow-hidden flex flex-col items-center gap-6">
+                      <InvestmentDecision
+                        ticker={ticker}
+                        decision={state.results?.investment?.decision}
+                        confidence={state.results?.investment?.confidence}
+                        rationale={state.results?.investment?.rationale}
+                      />
+                    </div>
+                  </div>
+                </ResultAccordion>
               )}
             </div>
           </section>

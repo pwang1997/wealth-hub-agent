@@ -22,7 +22,8 @@ const InvestmentDecision: React.FC<InvestmentDecisionProps> = ({
     };
 
     return (
-        <div className="glass-panel p-8 mb-8 text-center relative overflow-hidden flex flex-col items-center gap-6">
+        // <div className="glass-panel p-8 mb-8 text-center relative overflow-hidden flex flex-col items-center gap-6">
+        <>
             <h2 className="text-xl font-bold uppercase tracking-wider text-text-muted mb-2">{ticker} Analysis Final Result</h2>
 
             <div className={`text-3xl font-black uppercase tracking-tighter py-3 px-8 rounded-md inline-block border ${decisionStyles[decision]}`}>
@@ -39,7 +40,8 @@ const InvestmentDecision: React.FC<InvestmentDecisionProps> = ({
             <div className="text-lg text-text-muted max-w-2xl leading-relaxed italic">
                 {rationale}
             </div>
-        </div>
+        </>
+        // </div>
     );
 };
 

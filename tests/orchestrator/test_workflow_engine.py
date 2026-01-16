@@ -126,9 +126,9 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
         def side_effect(key):
             print(f"DEBUG: Cache.get called with key='{key}'")
             if "retrieval" in key:
-                print(f"DEBUG: Returning cached_retrieval")
+                print("DEBUG: Returning cached_retrieval")
                 return cached_retrieval
-            print(f"DEBUG: Returning None")
+            print("DEBUG: Returning None")
             return None
 
         self.mock_cache.get.side_effect = side_effect
@@ -151,7 +151,9 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
         res = await self.orchestrator.run_workflow(req, workflow_id="cached_wf")
 
         # Verify Retrieval Agent NOT called (cached)
-        print(f"DEBUG: retrieval_agent.process.await_count = {self.orchestrator.retrieval_agent.process.await_count}")
+        print(
+            f"DEBUG: retrieval_agent.process.await_count = {self.orchestrator.retrieval_agent.process.await_count}"
+        )
         self.orchestrator.retrieval_agent.process.assert_not_awaited()
         self.assertEqual(res.retrieval, cached_retrieval)
 
@@ -174,3 +176,38 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
         self.assertIn("step_complete", event_types)
         self.assertIn("workflow_complete", event_types)
         self.assertEqual(events[-1].status, WorkflowStatus.PARTIAL)
+
+    async def test_full_streaming_events(self):
+        # Setup Mocks for all agents
+        self.orchestrator.retrieval_agent.process.return_value = MagicMock(
+            spec=RetrievalAgentOutput, status="success"
+        )
+        self.orchestrator.fundamental_agent.process.return_value = MagicMock(
+            spec=FundamentalAnalystOutput
+        )
+        self.orchestrator.news_agent.process.return_value = MagicMock(spec=NewsAnalystOutput)
+        self.orchestrator.research_agent.process.return_value = MagicMock(
+            spec=ResearchAnalystOutput
+        )
+        self.orchestrator.investment_agent.process.return_value = MagicMock(
+            spec=InvestmentManagerOutput
+        )
+
+        req = WorkflowRequest(query="test", ticker="AAPL")
+        events = []
+        async for event in self.orchestrator.workflow_generator(req, "test_full_stream"):
+            events.append(event)
+            print(f"DEBUG EVENT: {event.event} for step {event.step}")
+
+        # Check for start and complete for each step
+        for step in [
+            StepName.RETRIEVAL,
+            StepName.FUNDAMENTAL,
+            StepName.NEWS,
+            StepName.RESEARCH,
+            StepName.INVESTMENT,
+        ]:
+            starts = [e for e in events if e.event == "step_start" and e.step == step]
+            completes = [e for e in events if e.event == "step_complete" and e.step == step]
+            self.assertTrue(len(starts) > 0, f"Missing step_start for {step}")
+            self.assertTrue(len(completes) > 0, f"Missing step_complete for {step}")
