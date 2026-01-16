@@ -10,9 +10,10 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s - %(message)s",
 )
 
+from fastapi.middleware.cors import CORSMiddleware
+
 from src.routes.rag_route import router as rag_router
 from src.routes.workflow_route import router as workflow_router
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Wealth Hub Agent API", logger=logging.getLogger(__name__))
 

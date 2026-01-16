@@ -132,7 +132,9 @@ class WorkflowOrchestrator:
             workflow_id=workflow_id,
             step_name=StepName.RETRIEVAL,
             request=request,
-            should_run=True,
+            should_run=self._should_run_step(
+                StepName.RETRIEVAL, request.only_steps, request.until_step
+            ),
             func=lambda: self.retrieval_agent.process(
                 query=request.query,
                 ticker=request.ticker,
@@ -162,8 +164,12 @@ class WorkflowOrchestrator:
         )
         run_news = self._should_run_step(StepName.NEWS, request.only_steps, request.until_step)
 
-        yield StreamEvent(workflow_id=workflow_id, event="step_start", step=StepName.FUNDAMENTAL)
-        yield StreamEvent(workflow_id=workflow_id, event="step_start", step=StepName.NEWS)
+        if run_fundamental:
+            yield StreamEvent(
+                workflow_id=workflow_id, event="step_start", step=StepName.FUNDAMENTAL
+            )
+        if run_news:
+            yield StreamEvent(workflow_id=workflow_id, event="step_start", step=StepName.NEWS)
 
         fundamental_task = None
         news_task = None
@@ -190,21 +196,36 @@ class WorkflowOrchestrator:
                 )
             )
 
-        # Await parallel results
+        # Await parallel results as they complete
         fundamental_res = None
         news_res = None
-
+        parallel_tasks = []
         if fundamental_task:
-            fundamental_res = await fundamental_task
-            yield StreamEvent(
-                workflow_id=workflow_id,
-                event="step_complete",
-                step=StepName.FUNDAMENTAL,
-                status=fundamental_res.status,
-                payload=fundamental_res,
+            parallel_tasks.append(fundamental_task)
+        if news_task:
+            parallel_tasks.append(news_task)
+
+        if parallel_tasks:
+            for completed_task in asyncio.as_completed(parallel_tasks):
+                res = await completed_task
+                if res.step_name == StepName.FUNDAMENTAL:
+                    fundamental_res = res
+                else:
+                    news_res = res
+
+                yield StreamEvent(
+                    workflow_id=workflow_id,
+                    event="step_complete",
+                    step=res.step_name,
+                    status=res.status,
+                    payload=res,
+                )
+
+        # Handle skipped branches
+        if run_fundamental is False:
+            fundamental_res = WorkflowStepResult(
+                step_name=StepName.FUNDAMENTAL, status=StepStatus.SKIPPED
             )
-        elif run_fundamental is False:  # Skipped
-            fundamental_res = WorkflowStepResult(step_name=StepName.FUNDAMENTAL, status=StepStatus.SKIPPED)
             yield StreamEvent(
                 workflow_id=workflow_id,
                 event="step_complete",
@@ -213,16 +234,7 @@ class WorkflowOrchestrator:
                 payload=fundamental_res,
             )
 
-        if news_task:
-            news_res = await news_task
-            yield StreamEvent(
-                workflow_id=workflow_id,
-                event="step_complete",
-                step=StepName.NEWS,
-                status=news_res.status,
-                payload=news_res,
-            )
-        elif run_news is False:  # Skipped
+        if run_news is False:
             news_res = WorkflowStepResult(step_name=StepName.NEWS, status=StepStatus.SKIPPED)
             yield StreamEvent(
                 workflow_id=workflow_id,
@@ -234,9 +246,17 @@ class WorkflowOrchestrator:
 
         # 3. Research
         can_run_research = True
-        if run_fundamental and fundamental_res and fundamental_res.status != StepStatus.COMPLETED:
+        if run_fundamental and (
+            not fundamental_res or fundamental_res.status != StepStatus.COMPLETED
+        ):
+            logger.warning(
+                f"Research dependence failed: Fundamental status={fundamental_res.status if fundamental_res else 'None'}"
+            )
             can_run_research = False
-        if run_news and news_res and news_res.status != StepStatus.COMPLETED:
+        if run_news and (not news_res or news_res.status != StepStatus.COMPLETED):
+            logger.warning(
+                f"Research dependence failed: News status={news_res.status if news_res else 'None'}"
+            )
             can_run_research = False
 
         research_res: WorkflowStepResult | None = None
@@ -244,7 +264,9 @@ class WorkflowOrchestrator:
             workflow_id=workflow_id,
             step_name=StepName.RESEARCH,
             request=request,
-            should_run=self._should_run_step(StepName.RESEARCH, request.only_steps, request.until_step),
+            should_run=self._should_run_step(
+                StepName.RESEARCH, request.only_steps, request.until_step
+            ),
             dependencies_ok=can_run_research,
             func=lambda: self.research_agent.process(
                 fundamental_output=fundamental_res.output if fundamental_res else None,
@@ -272,7 +294,9 @@ class WorkflowOrchestrator:
             workflow_id=workflow_id,
             step_name=StepName.INVESTMENT,
             request=request,
-            should_run=self._should_run_step(StepName.INVESTMENT, request.only_steps, request.until_step),
+            should_run=self._should_run_step(
+                StepName.INVESTMENT, request.only_steps, request.until_step
+            ),
             func=lambda: self.investment_agent.process(research_output=research_res.output),
         ):
             yield event
@@ -304,6 +328,9 @@ class WorkflowOrchestrator:
         """
         if should_run and dependencies_ok and func:
             yield StreamEvent(workflow_id=workflow_id, event="step_start", step=step_name)
+            # Give the event loop a chance to flush the start event to the client
+            await asyncio.sleep(0.01)
+
             result = await self._execute_step(workflow_id, step_name, request, func)
             yield StreamEvent(
                 workflow_id=workflow_id,
