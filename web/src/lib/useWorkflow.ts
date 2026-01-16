@@ -47,29 +47,37 @@ const initialState: WorkflowState = {
 
 export function useWorkflow() {
   const [state, setState] = useState<WorkflowState>(initialState);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timersRef = useRef<Record<string, NodeJS.Timeout>>({});
 
   const startTimer = useCallback((step: string) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
+    // Clear any existing timer for this specific step
+    if (timersRef.current[step]) clearInterval(timersRef.current[step]);
+    
+    timersRef.current[step] = setInterval(() => {
       setState(prev => ({
         ...prev,
         durations: {
           ...prev.durations,
-          [step]: prev.durations[step as keyof typeof prev.durations] + 1
+          [step]: (prev.durations[step as keyof typeof prev.durations] || 0) + 1
         }
       }));
     }, 1000);
   }, []);
 
-  const stopTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+  const stopTimer = useCallback((step: string) => {
+    if (timersRef.current[step]) {
+      clearInterval(timersRef.current[step]);
+      delete timersRef.current[step];
     }
   }, []);
 
+  const stopAllTimers = useCallback(() => {
+    Object.values(timersRef.current).forEach(clearInterval);
+    timersRef.current = {};
+  }, []);
+
   const runWorkflow = useCallback(async (ticker: string, query: string) => {
+    stopAllTimers();
     setState({ ...initialState, status: 'running' });
 
     try {
@@ -117,10 +125,10 @@ export function useWorkflow() {
                 steps: { ...prev.steps, [event.step]: event.status },
                 results: { ...prev.results, [event.step]: event.payload.output }
               }));
-              stopTimer();
+              stopTimer(event.step);
             } else if (event.event === 'workflow_complete') {
               setState(prev => ({ ...prev, status: 'completed' }));
-              stopTimer();
+              stopAllTimers();
             }
           } catch (e) {
             console.error('Failed to parse SSE event:', trimmedLine, e);
@@ -130,9 +138,9 @@ export function useWorkflow() {
     } catch (error) {
       console.error('Workflow failed:', error);
       setState(prev => ({ ...prev, status: 'failed' }));
-      stopTimer();
+      stopAllTimers();
     }
-  }, [startTimer, stopTimer]);
+  }, [startTimer, stopTimer, stopAllTimers]);
 
   return { state, runWorkflow };
 }
