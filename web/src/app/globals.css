@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #050505;
+  --color-foreground: #ffffff;
+  
+  --color-accent-primary: #10b981;
+  --color-accent-secondary: #3b82f6;
+  
+  --color-card-bg: rgba(255, 255, 255, 0.03);
+  --color-card-border: rgba(255, 255, 255, 0.08);
+  
+  --color-text-muted: #94a3b8;
+  
+  --font-main: 'Outfit', sans-serif;
+  
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+}
+
+@layer base {
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+  body {
+    @apply bg-background text-foreground font-main antialiased overflow-x-hidden;
+    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 40%),
+                radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.05), transparent 40%),
+                #050505;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-card-bg backdrop-blur-xl border border-white/10 rounded-lg;
+  }
+
+  .glass-card {
+    @apply bg-white/2 border border-white/5 rounded-md transition-all duration-300;
+  }
+
+  .glass-card:hover {
+    @apply bg-white/4 border-white/10 -translate-y-0.5;
+  }
+
+  .btn-primary {
+    @apply bg-accent-primary text-black font-semibold px-5 py-2.5 rounded-sm transition-all duration-200 shadow-[0_4px_14px_0_rgba(16,185,129,0.15)];
+  }
+
+  .btn-primary:hover {
+    @apply scale-[1.02] brightness-110;
+  }
+}
+
+@keyframes pulse-custom {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.98); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.animate-pulse-custom {
+  animation: pulse-custom 2s infinite ease-in-out;
+}
