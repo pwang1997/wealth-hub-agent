@@ -4,7 +4,7 @@ import InvestmentDecision from '@/components/Dashboard/InvestmentDecision';
 import ResultAccordion from '@/components/Dashboard/ResultAccordion';
 import { Step } from '@/components/Dashboard/WorkflowStepper';
 import { useWorkflow } from '@/lib/useWorkflow';
-import { Briefcase, LayoutDashboard, Loader2, Search, Settings, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Loader2, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Home() {
@@ -34,9 +34,9 @@ export default function Home() {
         <nav className="px-4 flex-1">
           {[
             { icon: <LayoutDashboard size={20} />, label: 'Dashboard', active: true },
-            { icon: <Briefcase size={20} />, label: 'Portfolio' },
-            { icon: <Search size={20} />, label: 'Market Analysis' },
-            { icon: <Settings size={20} />, label: 'Settings' },
+            // { icon: <Briefcase size={20} />, label: 'Portfolio' },
+            // { icon: <Search size={20} />, label: 'Market Analysis' },
+            // { icon: <Settings size={20} />, label: 'Settings' },
           ].map((item, idx) => (
             <div
               key={idx}
