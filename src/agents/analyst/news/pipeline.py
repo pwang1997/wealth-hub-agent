@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import logging
 import math
-import os
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
-from openai import OpenAI
-
+from clients.model_client import ModelClient
 from src.agents.base_agent import BaseAgent
 from src.agents.base_pipeline import BasePipeline, BasePipelineNode
 from src.models.news_analyst import NewsAnalystOutput, NewsTickerRollup
@@ -42,15 +40,19 @@ class NewsAnalystPipelineNode(BasePipelineNode[NewsAnalystPipelineState]):
 class NewsAnalystPipeline(BasePipeline[NewsAnalystPipelineState]):
     """Orchestrator for news analysis."""
 
+    def __init__(
+        self,
+        model_client: ModelClient,
+        nodes: list[BasePipelineNode[NewsAnalystPipelineState]] | None = None,
+    ):
+        super().__init__(nodes)
+        self.model_client = model_client
+
 
 class ReasoningNode(NewsAnalystPipelineNode):
     async def run(self, agent: BaseAgent, state: NewsAnalystPipelineState) -> None:
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not openai_api_key:
-            raise RuntimeError("OPENAI_API_KEY is required for news analysis")
-
-        client = OpenAI(api_key=openai_api_key)
-        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        if not isinstance(agent.pipeline, NewsAnalystPipeline):
+            raise RuntimeError("ReasoningNode must be run within a NewsAnalystPipeline")
 
         prompt = (
             f"You are {agent.agent_name}. {agent.role_description}\n"
@@ -61,11 +63,7 @@ class ReasoningNode(NewsAnalystPipelineNode):
             "<objectives>\n[Concise objectives for the rest of the pipeline]\n</objectives>"
         )
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        content = response.choices[0].message.content or ""
+        content = agent.pipeline.model_client.generate_completion(prompt=prompt)
 
         def extract_tag(text: str, tag: str) -> str:
             match = re.search(rf"<{tag}>(.*?)</{tag}>", text, re.DOTALL)
@@ -204,12 +202,8 @@ class AggregationNode(NewsAnalystPipelineNode):
 
 class SynthesisNode(NewsAnalystPipelineNode):
     async def run(self, agent: BaseAgent, state: NewsAnalystPipelineState) -> None:
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not openai_api_key:
-            raise RuntimeError("OPENAI_API_KEY is required for news analysis")
-
-        client = OpenAI(api_key=openai_api_key)
-        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        if not isinstance(agent.pipeline, NewsAnalystPipeline):
+            raise RuntimeError("SynthesisNode must be run within a NewsAnalystPipeline")
 
         # Top 5 headlines overall (by recency weight)
         # We didn't store overall weights in state, so we just pick from unique_news if we had them or just use ticker data
@@ -234,14 +228,9 @@ class SynthesisNode(NewsAnalystPipelineNode):
             ticker_summaries,
         )
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": agent.get_system_prompt()},
-                {"role": "user", "content": prompt},
-            ],
+        rationale = agent.pipeline.model_client.generate_completion(
+            prompt=prompt, system_prompt=agent.get_system_prompt()
         )
-        rationale = response.choices[0].message.content or "No rationale provided."
 
         state.analysis = NewsAnalystOutput(
             query=state.retrieval_output.query,

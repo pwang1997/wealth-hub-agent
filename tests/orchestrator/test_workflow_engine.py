@@ -19,7 +19,13 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
         self.mock_cache_cls.return_value = self.mock_cache
         self.mock_cache.get.return_value = None  # Default cache miss
 
-        # Instantiate orchestrator (will use mocked Cache)
+        # Mock ModelClient
+        self.model_client_patcher = patch("src.orchestrator.orchestrator.ModelClient")
+        self.mock_model_client_cls = self.model_client_patcher.start()
+        self.mock_model_client = MagicMock()
+        self.mock_model_client_cls.return_value = self.mock_model_client
+
+        # Instantiate orchestrator (will use mocked Cache and ModelClient)
         self.orchestrator = WorkflowOrchestrator()
 
         # Patch Agents
@@ -31,6 +37,7 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
 
     def tearDown(self):
         self.cache_patcher.stop()
+        self.model_client_patcher.stop()
 
     async def test_full_workflow_success(self):
         # Setup Mocks

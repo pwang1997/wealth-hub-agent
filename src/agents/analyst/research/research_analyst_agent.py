@@ -1,6 +1,7 @@
 import logging
 from typing import override
 
+from clients.model_client import ModelClient
 from src.agents.base_agent import BaseAgent
 from src.models.fundamental_analyst import FundamentalAnalystOutput
 from src.models.news_analyst import NewsAnalystOutput
@@ -22,7 +23,7 @@ class ResearchAnalystAgent(BaseAgent):
     Agent that composes fundamental and news analysis results into a unified report.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, model_client: ModelClient) -> None:
         super().__init__(
             agent_name="research_analyst_agent",
             role_description=(
@@ -31,6 +32,7 @@ class ResearchAnalystAgent(BaseAgent):
                 "composed analysis report."
             ),
         )
+        self.model_client = model_client
 
     async def process(
         self, fundamental_output: FundamentalAnalystOutput, news_output: NewsAnalystOutput
@@ -45,10 +47,11 @@ class ResearchAnalystAgent(BaseAgent):
         )
 
         pipeline = ResearchAnalystPipeline(
+            model_client=self.model_client,
             nodes=[
                 ReasoningNode(),
                 SynthesisNode(),
-            ]
+            ],
         )
 
         await pipeline.run(self, state)

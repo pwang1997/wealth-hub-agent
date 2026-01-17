@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta
+from unittest.mock import MagicMock
 
 from src.agents.analyst.news.news_analyst_agent import NewsAnalystAgent
 from src.agents.analyst.news.pipeline import AggregationNode, NewsAnalystPipelineState
@@ -11,7 +12,8 @@ from src.models.retrieval_agent import RetrievalAgentMetadata, RetrievalAgentOut
 
 def test_aggregation_logic():
     async def run():
-        agent = NewsAnalystAgent()
+        mock_model_client = MagicMock()
+        agent = NewsAnalystAgent(model_client=mock_model_client)
 
         # Helper to create Alpha Vantage style timestamp
         def av_ts(dt: datetime) -> str:

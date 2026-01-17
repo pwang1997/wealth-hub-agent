@@ -1,5 +1,6 @@
 import logging
 
+from clients.model_client import ModelClient
 from src.agents.base_agent import BaseAgent
 from src.models.news_analyst import NewsAnalystOutput
 from src.models.retrieval_agent import RetrievalAgentOutput
@@ -21,7 +22,7 @@ class NewsAnalystAgent(BaseAgent):
     Agent that aggregates and analyzes market news sentiment.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, model_client: ModelClient) -> None:
         super().__init__(
             agent_name="news_analyst_agent",
             role_description=(
@@ -29,6 +30,7 @@ class NewsAnalystAgent(BaseAgent):
                 "data and synthesizing it into a coherent narrative with per-ticker rollups."
             ),
         )
+        self.model_client = model_client
 
     async def process(self, retrieval_output: RetrievalAgentOutput) -> NewsAnalystOutput:
         """
@@ -38,11 +40,12 @@ class NewsAnalystAgent(BaseAgent):
 
         state = NewsAnalystPipelineState(retrieval_output=retrieval_output)
         pipeline = NewsAnalystPipeline(
+            model_client=self.model_client,
             nodes=[
                 ReasoningNode(),
                 AggregationNode(),
                 SynthesisNode(),
-            ]
+            ],
         )
 
         await pipeline.run(self, state)

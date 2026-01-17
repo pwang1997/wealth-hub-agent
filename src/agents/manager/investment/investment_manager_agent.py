@@ -1,6 +1,7 @@
 import logging
 from typing import override
 
+from clients.model_client import ModelClient
 from src.agents.base_agent import BaseAgent
 from src.models.investment_manager import InvestmentManagerOutput
 from src.models.research_analyst import ResearchAnalystOutput
@@ -21,7 +22,7 @@ class InvestmentManagerAgent(BaseAgent):
     Agent that makes the final investment decision based on synthesized research.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, model_client: ModelClient) -> None:
         super().__init__(
             agent_name="investment_manager_agent",
             role_description=(
@@ -30,6 +31,7 @@ class InvestmentManagerAgent(BaseAgent):
                 "contextualized in a synthesized research report."
             ),
         )
+        self.model_client = model_client
 
     async def process(self, research_output: ResearchAnalystOutput) -> InvestmentManagerOutput:
         """
@@ -42,10 +44,11 @@ class InvestmentManagerAgent(BaseAgent):
         )
 
         pipeline = InvestmentManagerPipeline(
+            model_client=self.model_client,
             nodes=[
                 ReasoningNode(),
                 DecisionNode(),
-            ]
+            ],
         )
 
         await pipeline.run(self, state)

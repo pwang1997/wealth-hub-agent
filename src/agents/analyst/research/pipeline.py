@@ -1,11 +1,9 @@
 import json
 import logging
-import os
 import re
 from dataclasses import dataclass
 
-from openai import OpenAI
-
+from clients.model_client import ModelClient
 from src.agents.base_agent import BaseAgent
 from src.agents.base_pipeline import BasePipeline, BasePipelineNode
 from src.models.fundamental_analyst import FundamentalAnalystOutput
@@ -38,15 +36,19 @@ class ResearchAnalystPipelineNode(BasePipelineNode[ResearchAnalystPipelineState]
 class ResearchAnalystPipeline(BasePipeline[ResearchAnalystPipelineState]):
     """Orchestrator for research analysis."""
 
+    def __init__(
+        self,
+        model_client: ModelClient,
+        nodes: list[BasePipelineNode[ResearchAnalystPipelineState]] | None = None,
+    ):
+        super().__init__(nodes)
+        self.model_client = model_client
+
 
 class ReasoningNode(ResearchAnalystPipelineNode):
     async def run(self, agent: BaseAgent, state: ResearchAnalystPipelineState) -> None:
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not openai_api_key:
-            raise RuntimeError("OPENAI_API_KEY is required for research analysis")
-
-        client = OpenAI(api_key=openai_api_key)
-        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        if not isinstance(agent.pipeline, ResearchAnalystPipeline):
+            raise RuntimeError("ReasoningNode must be run within a ResearchAnalystPipeline")
 
         prompt = (
             f"You are {agent.agent_name}. {agent.role_description}\n"
@@ -57,11 +59,7 @@ class ReasoningNode(ResearchAnalystPipelineNode):
             "<objectives>\n[Concise objectives for the final synthesized analysis report]\n</objectives>"
         )
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        content = response.choices[0].message.content or ""
+        content = agent.pipeline.model_client.generate_completion(prompt=prompt)
 
         def extract_tag(text: str, tag: str) -> str:
             match = re.search(rf"<{tag}>(.*?)</{tag}>", text, re.DOTALL)
@@ -78,12 +76,8 @@ class ReasoningNode(ResearchAnalystPipelineNode):
 
 class SynthesisNode(ResearchAnalystPipelineNode):
     async def run(self, agent: BaseAgent, state: ResearchAnalystPipelineState) -> None:
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not openai_api_key:
-            raise RuntimeError("OPENAI_API_KEY is required for research analysis")
-
-        client = OpenAI(api_key=openai_api_key)
-        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        if not isinstance(agent.pipeline, ResearchAnalystPipeline):
+            raise RuntimeError("SynthesisNode must be run within a ResearchAnalystPipeline")
 
         prompt = format_synthesis_prompt(
             ticker=state.fundamental_output.ticker,
@@ -94,16 +88,11 @@ class SynthesisNode(ResearchAnalystPipelineNode):
             objectives=state.objectives,
         )
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": agent.get_system_prompt()},
-                {"role": "user", "content": prompt},
-            ],
+        content = agent.pipeline.model_client.generate_completion(
+            prompt=prompt,
+            system_prompt=agent.get_system_prompt(),
             response_format={"type": "json_object"},
         )
-
-        content = response.choices[0].message.content or "{}"
         try:
             parsed = json.loads(content)
             parsed["ticker"] = state.fundamental_output.ticker
