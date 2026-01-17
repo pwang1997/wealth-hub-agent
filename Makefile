@@ -1,4 +1,4 @@
-.PHONY: dev cli lint lint-fix test clean-install test-workflow web
+.PHONY: dev cli lint lint-fix test clean-install test-workflow web compose-up
 
 dev:
 	uv sync --extra dev
@@ -30,6 +30,9 @@ clean-install:
 	rm -rf .venv
 	uv venv
 	uv sync
+
+compose-up:
+	docker compose build --no-cache && docker compose up -d
 
 test-workflow:
 	curl -N -X POST http://localhost:8000/v1/workflow/stream \
