@@ -1,3 +1,5 @@
+import os
+
 from fastapi.middleware import Middleware
 from fastmcp import FastMCP
 from starlette.middleware.cors import CORSMiddleware
@@ -25,4 +27,5 @@ class McpServerFactory:
 
     @staticmethod
     def run_default_mcp_server(mcp: FastMCP, port: str, transport: str = "streamable-http"):
-        mcp.run(transport=transport, port=port)
+        host = os.getenv("MCP_HOST", "0.0.0.0")
+        mcp.run(transport=transport, port=port, host=host)

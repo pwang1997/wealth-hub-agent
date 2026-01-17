@@ -1,0 +1,47 @@
+services:
+  chromadb:
+    image: chromadb/chroma:1.4.0
+    environment:
+      CHROMA_PERSIST_DIR: /chroma/chroma
+      CHROMA_PORT: 8000
+    volumes:
+      - chromadb_data:/chroma/chroma
+    ports:
+      - "8001:8000"
+
+  mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    env_file:
+      - .env
+    environment:
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: 8000
+    ports:
+      - "8100:8100"
+      - "8200:8200"
+      - "8300:8300"
+    depends_on:
+      - chromadb
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    env_file:
+      - .env
+    environment:
+      ALPHA_VANTAGE_MCP_URL: http://mcp:8100/mcp
+      FINNHUB_MCP_URL: http://mcp:8200/mcp
+      RAG_MCP_URL: http://mcp:8300/mcp
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: 8000
+    depends_on:
+      - mcp
+      - chromadb
+    ports:
+      - "8000:8000"
+
+volumes:
+  chromadb_data:
