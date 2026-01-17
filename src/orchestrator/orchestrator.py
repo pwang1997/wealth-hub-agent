@@ -10,6 +10,7 @@ from typing import Any
 
 from diskcache import Cache
 
+from clients.model_client import ModelClient
 from src.agents.analyst.fundamental.fundamental_analyst_agent import FundamentalAnalystAgent
 from src.agents.analyst.news.news_analyst_agent import NewsAnalystAgent
 from src.agents.analyst.research.research_analyst_agent import ResearchAnalystAgent
@@ -48,13 +49,14 @@ cache_dir = os.path.join(base_dir, ".workflow_cache")
 class WorkflowOrchestrator:
     def __init__(self, cache_dir: str = cache_dir):
         self.cache = Cache(cache_dir)
+        self.model_client = ModelClient()
 
         # Initialize agents
         self.retrieval_agent = AnalystRetrievalAgent()
-        self.fundamental_agent = FundamentalAnalystAgent()
-        self.news_agent = NewsAnalystAgent()
-        self.research_agent = ResearchAnalystAgent()
-        self.investment_agent = InvestmentManagerAgent()
+        self.fundamental_agent = FundamentalAnalystAgent(model_client=self.model_client)
+        self.news_agent = NewsAnalystAgent(model_client=self.model_client)
+        self.research_agent = ResearchAnalystAgent(model_client=self.model_client)
+        self.investment_agent = InvestmentManagerAgent(model_client=self.model_client)
 
     def _should_run_step(
         self, step: StepName, only_steps: list[StepName] | None, until_step: StepName | None

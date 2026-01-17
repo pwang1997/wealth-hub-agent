@@ -30,6 +30,7 @@ class BaseAgent(ABC):
     def __init__(self, agent_name: str, role_description: str):
         self.agent_name = agent_name
         self.role_description = role_description
+        self.pipeline: Any = None
 
     @abstractmethod
     async def process(self, *args: Any, **kwargs: Any) -> Any:

@@ -1,8 +1,9 @@
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
+from clients.model_client import ModelClient
 from src.agents.analyst.fundamental.fundamental_analyst_agent import FundamentalAnalystAgent
 from src.models.fundamental_analyst import FundamentalAnalystOutput
 from src.models.fundamentals import (
@@ -86,37 +87,37 @@ def mock_retrieval_output():
 
 @pytest.mark.anyio
 async def test_fundamental_analyst_agent_process(mock_retrieval_output):
-    agent = FundamentalAnalystAgent()
+    mock_model_client = MagicMock(spec=ModelClient)
+    agent = FundamentalAnalystAgent(model_client=mock_model_client)
 
-    # Mock OpenAI
-    with patch("src.agents.analyst.fundamental.pipeline.OpenAI") as MockOpenAI:
-        mock_client = MockOpenAI.return_value
-        mock_response = MagicMock()
-        mock_response.choices[0].message.content = json.dumps(
-            {
-                "ticker": "AAPL",
-                "health_score": 85,
-                "strengths": [
-                    {"name": "Strong Margin", "description": "10% net margin", "impact": "positive"}
-                ],
-                "weaknesses": [],
-                "red_flags": [],
-                "summary": "Great company",
-            }
-        )
-        mock_client.chat.completions.create.return_value = mock_response
+    # Mock ModelClient response
+    mock_content = json.dumps(
+        {
+            "ticker": "AAPL",
+            "health_score": 85,
+            "strengths": [
+                {"name": "Strong Margin", "description": "10% net margin", "impact": "positive"}
+            ],
+            "weaknesses": [],
+            "red_flags": [],
+            "summary": "Great company",
+        }
+    )
+    mock_model_client.generate_completion.side_effect = [
+        "<thought>Thinking...</thought><objectives>Analyze metrics</objectives>",  # ReasoningNode
+        mock_content,  # AnalyzeWithLLMNode
+    ]
 
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "fake-key"}):
-            result = await agent.process(mock_retrieval_output)
-            expected_health_score = 85
-            assert isinstance(result, FundamentalAnalystOutput)
-            assert result.ticker == "AAPL"
-            assert result.health_score == expected_health_score
-            assert result.citations == ["0001234567-21-000001"]
+    result = await agent.process(mock_retrieval_output)
+    expected_health_score = 85
+    assert isinstance(result, FundamentalAnalystOutput)
+    assert result.ticker == "AAPL"
+    assert result.health_score == expected_health_score
+    assert result.citations == ["0001234567-21-000001"]
 
-            # Verify calculations were included in prompt
-            # Extract the actual call arguments
-            call_args = mock_client.chat.completions.create.call_args
-            user_msg = call_args.kwargs["messages"][1]["content"]
-            assert "Net Margin: 10.00%" in user_msg
-            assert "OCF / Net Income Ratio: 1.20" in user_msg
+    # Verify calculations were included in prompt
+    # Extract the actual call arguments for AnalyzeWithLLMNode
+    call_args = mock_model_client.generate_completion.call_args_list[1]
+    user_msg = call_args.kwargs["prompt"]
+    assert "Net Margin: 10.00%" in user_msg
+    assert "OCF / Net Income Ratio: 1.20" in user_msg

@@ -1,6 +1,7 @@
 import logging
 from typing import override
 
+from clients.model_client import ModelClient
 from src.agents.analyst.fundamental.prompt import get_system_prompt
 from src.agents.base_agent import BaseAgent
 from src.models.fundamental_analyst import FundamentalAnalystOutput
@@ -22,7 +23,7 @@ class FundamentalAnalystAgent(BaseAgent):
     Agent that performs fundamental analysis on a company based on retrieval output.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, model_client: ModelClient) -> None:
         super().__init__(
             agent_name="fundamental_analyst_agent",
             role_description=(
@@ -30,6 +31,7 @@ class FundamentalAnalystAgent(BaseAgent):
                 "using EDGAR data as the authoritative source."
             ),
         )
+        self.model_client = model_client
 
     @override
     async def process(self, retrieval_output: RetrievalAgentOutput) -> FundamentalAnalystOutput:
@@ -42,11 +44,12 @@ class FundamentalAnalystAgent(BaseAgent):
 
         state = FundamentalAnalystPipelineState(retrieval_output=retrieval_output)
         pipeline = FundamentalAnalystPipeline(
+            model_client=self.model_client,
             nodes=[
                 ReasoningNode(),
                 CalculateMetricsNode(),
                 AnalyzeWithLLMNode(),
-            ]
+            ],
         )
 
         await pipeline.run(self, state)

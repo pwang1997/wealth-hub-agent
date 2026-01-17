@@ -34,6 +34,7 @@ class BasePipeline[TState]:
         """
         Execute all nodes in the pipeline sequentially.
         """
+        agent.pipeline = self
         for node in self._nodes:
             # We can add global hooks here later (e.g., telemetry, error handling)
             await node.run(agent, state)

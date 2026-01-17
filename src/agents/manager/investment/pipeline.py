@@ -1,11 +1,9 @@
 import json
 import logging
-import os
 import re
 from dataclasses import dataclass
 
-from openai import OpenAI
-
+from clients.model_client import ModelClient
 from src.agents.base_agent import BaseAgent
 from src.agents.base_pipeline import BasePipeline, BasePipelineNode
 from src.models.investment_manager import InvestmentManagerOutput
@@ -35,15 +33,19 @@ class InvestmentManagerPipelineNode(BasePipelineNode[InvestmentManagerPipelineSt
 class InvestmentManagerPipeline(BasePipeline[InvestmentManagerPipelineState]):
     """Orchestrator for investment decision making."""
 
+    def __init__(
+        self,
+        model_client: ModelClient,
+        nodes: list[BasePipelineNode[InvestmentManagerPipelineState]] | None = None,
+    ):
+        super().__init__(nodes)
+        self.model_client = model_client
+
 
 class ReasoningNode(InvestmentManagerPipelineNode):
     async def run(self, agent: BaseAgent, state: InvestmentManagerPipelineState) -> None:
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not openai_api_key:
-            raise RuntimeError("OPENAI_API_KEY is required for investment decision")
-
-        client = OpenAI(api_key=openai_api_key)
-        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        if not isinstance(agent.pipeline, InvestmentManagerPipeline):
+            raise RuntimeError("ReasoningNode must be run within an InvestmentManagerPipeline")
 
         prompt = (
             f"You are {agent.agent_name}. {agent.role_description}\n"
@@ -54,11 +56,7 @@ class ReasoningNode(InvestmentManagerPipelineNode):
             "<objectives>\n[Concise objectives for the final investment decision and rationale]\n</objectives>"
         )
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        content = response.choices[0].message.content or ""
+        content = agent.pipeline.model_client.generate_completion(prompt=prompt)
 
         def extract_tag(text: str, tag: str) -> str:
             match = re.search(rf"<{tag}>(.*?)</{tag}>", text, re.DOTALL)
@@ -75,12 +73,8 @@ class ReasoningNode(InvestmentManagerPipelineNode):
 
 class DecisionNode(InvestmentManagerPipelineNode):
     async def run(self, agent: BaseAgent, state: InvestmentManagerPipelineState) -> None:
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not openai_api_key:
-            raise RuntimeError("OPENAI_API_KEY is required for investment decision")
-
-        client = OpenAI(api_key=openai_api_key)
-        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        if not isinstance(agent.pipeline, InvestmentManagerPipeline):
+            raise RuntimeError("DecisionNode must be run within an InvestmentManagerPipeline")
 
         user_prompt = (
             f"Ticker: {state.ticker}\n"
@@ -91,16 +85,11 @@ class DecisionNode(InvestmentManagerPipelineNode):
             "Provide the final investment decision in JSON format."
         )
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": agent.get_system_prompt()},
-                {"role": "user", "content": user_prompt},
-            ],
+        content = agent.pipeline.model_client.generate_completion(
+            prompt=user_prompt,
+            system_prompt=agent.get_system_prompt(),
             response_format={"type": "json_object"},
         )
-
-        content = response.choices[0].message.content or "{}"
         try:
             parsed = json.loads(content)
             parsed["ticker"] = state.ticker

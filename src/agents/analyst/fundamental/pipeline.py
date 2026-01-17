@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 from dataclasses import dataclass, field
 
-from openai import OpenAI
-
+from clients.model_client import ModelClient
 from src.agents.base_agent import BaseAgent
 from src.agents.base_pipeline import BasePipeline, BasePipelineNode
 from src.models.fundamental_analyst import FundamentalAnalystOutput
@@ -36,15 +34,19 @@ class FundamentalAnalystPipelineNode(BasePipelineNode[FundamentalAnalystPipeline
 class FundamentalAnalystPipeline(BasePipeline[FundamentalAnalystPipelineState]):
     """Orchestrator for fundamental analysis."""
 
+    def __init__(
+        self,
+        model_client: ModelClient,
+        nodes: list[BasePipelineNode[FundamentalAnalystPipelineState]] | None = None,
+    ):
+        super().__init__(nodes)
+        self.model_client = model_client
+
 
 class ReasoningNode(FundamentalAnalystPipelineNode):
     async def run(self, agent: BaseAgent, state: FundamentalAnalystPipelineState) -> None:
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not openai_api_key:
-            raise RuntimeError("OPENAI_API_KEY is required for fundamental analysis")
-
-        client = OpenAI(api_key=openai_api_key)
-        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        if not isinstance(agent.pipeline, FundamentalAnalystPipeline):
+            raise RuntimeError("ReasoningNode must be run within a FundamentalAnalystPipeline")
 
         prompt = (
             f"You are {agent.agent_name}. {agent.role_description}\n"
@@ -55,11 +57,7 @@ class ReasoningNode(FundamentalAnalystPipelineNode):
             "<objectives>\n[Concise objectives for the rest of the pipeline]\n</objectives>"
         )
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        content = response.choices[0].message.content or ""
+        content = agent.pipeline.model_client.generate_completion(prompt=prompt)
 
         def extract_tag(text: str, tag: str) -> str:
             # Use a non-greedy match to find content between the first pair of tags
@@ -162,12 +160,8 @@ class CalculateMetricsNode(FundamentalAnalystPipelineNode):
 
 class AnalyzeWithLLMNode(FundamentalAnalystPipelineNode):
     async def run(self, agent: BaseAgent, state: FundamentalAnalystPipelineState) -> None:
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not openai_api_key:
-            raise RuntimeError("OPENAI_API_KEY is required for fundamental analysis")
-
-        client = OpenAI(api_key=openai_api_key)
-        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        if not isinstance(agent.pipeline, FundamentalAnalystPipeline):
+            raise RuntimeError("AnalyzeWithLLMNode must be run within a FundamentalAnalystPipeline")
 
         ticker = state.retrieval_output.edgar_filings.ticker
         company_name = state.retrieval_output.edgar_filings.cik  # cik as fallback
@@ -181,16 +175,11 @@ class AnalyzeWithLLMNode(FundamentalAnalystPipelineNode):
             state.objectives,
         )
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
+        content = agent.pipeline.model_client.generate_completion(
+            prompt=user_prompt,
+            system_prompt=system_prompt,
             response_format={"type": "json_object"},
         )
-
-        content = response.choices[0].message.content or "{}"
         try:
             parsed = json.loads(content)
             parsed["ticker"] = ticker
