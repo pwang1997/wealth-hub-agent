@@ -65,6 +65,7 @@ The project uses a `Makefile` for streamlined development:
 
 | Command | Action |
 | :--- | :--- |
+| `make compose-up` | **Build and Run Local Services**: Build docker images and start local backend services in docker container |
 | `make dev` | **Start Backend**: Launches the FastAPI server at `localhost:8000` |
 | `make web` | **Start Frontend**: Launches the Next.js dev server at `localhost:3000` |
 | `make mcp` | **Start MCP Servers**: Bridges Alpha Vantage, Finnhub, and RAG tools |
@@ -79,12 +80,27 @@ The project uses a `Makefile` for streamlined development:
     make dev  # This will also sync python env via uv
     ```
 2.  **Configure Environment**:
-    Create a `.env` file based on `.env.example` with your `OPENAI_API_KEY`, `FINNHUB_API_KEY`, and `ALPHA_VANTAGE_API_KEY`.
+    Create a `.env` file based on `.env.example` with your `LLM_API_KEY`, `FINNHUB_API_KEY`, and `ALPHA_VANTAGE_API_KEY`.
 3.  **Run the full stack**:
-    In separate terminals, run:
-    -   Terminal 1: `make mcp`
-    -   Terminal 2: `make dev`
-    -   Terminal 3: `make web`
+    ```bash
+    # This will build docker images and start local backend services in docker container.
+    make compose-up
+    ```
+    
+    ```bash
+    # This will start MCP servers in separate terminal.
+    make mcp
+    ```
+    
+    ```bash
+    # This will start FastAPI server in separate terminal.
+    make dev
+    ```
+    
+    ```bash
+    # This will start Next.js dev server in separate terminal.
+    make web
+    ```
 
 ---
 Built with ❤️ for advanced financial intelligence.
