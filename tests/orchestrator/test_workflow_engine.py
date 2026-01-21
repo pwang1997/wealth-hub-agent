@@ -1,3 +1,4 @@
+import contextlib
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -24,6 +25,13 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
         self.mock_model_client_cls = self.model_client_patcher.start()
         self.mock_model_client = MagicMock()
         self.mock_model_client_cls.return_value = self.mock_model_client
+        self.mock_model_client.capture_usage.return_value = contextlib.nullcontext([])
+
+        # Mock Run Store
+        self.run_store_patcher = patch("src.orchestrator.orchestrator.WorkflowRunStore")
+        self.mock_run_store_cls = self.run_store_patcher.start()
+        self.mock_run_store = MagicMock()
+        self.mock_run_store_cls.return_value = self.mock_run_store
 
         # Instantiate orchestrator (will use mocked Cache and ModelClient)
         self.orchestrator = WorkflowOrchestrator()
@@ -38,6 +46,7 @@ class TestWorkflowOrchestrator(unittest.IsolatedAsyncioTestCase):
     def tearDown(self):
         self.cache_patcher.stop()
         self.model_client_patcher.stop()
+        self.run_store_patcher.stop()
 
     async def test_full_workflow_success(self):
         # Setup Mocks
