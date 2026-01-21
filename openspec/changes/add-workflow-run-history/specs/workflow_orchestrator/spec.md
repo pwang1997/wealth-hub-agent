@@ -17,5 +17,5 @@ The system SHALL capture structured workflow events (step_start, step_complete, 
 The system SHALL expose API endpoints to list and fetch stored workflow runs, including run metadata and optional step outputs. The list endpoint MUST support pagination and optional filtering by ticker. The detail endpoint MUST return a not-found error for unknown workflow ids.
 
 #### Scenario: List recent runs
-- **WHEN** a client requests the run list with a limit and time filter
-- **THEN** the API returns matching run summaries ordered by start time.
+- **WHEN** a client requests the run list with a limit and ticker filter
+- **THEN** the API returns matching run summaries ordered by completion time (descending).
