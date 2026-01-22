@@ -16,7 +16,7 @@ export default function Home() {
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <aside className="glass-panel w-[280px] m-4 flex flex-col">
+      <aside className="glass-panel w-70 m-4 flex flex-col">
         <div className="p-8 flex items-center gap-4">
           <div className="w-10 h-10 bg-accent-primary rounded-sm flex items-center justify-center text-black">
             <TrendingUp size={24} />
@@ -28,9 +28,6 @@ export default function Home() {
           {[
             { icon: <LayoutDashboard size={20} />, label: 'Dashboard', href: '/', active: true },
             { icon: <History size={20} />, label: 'Workflow Runs', href: '/workflows', active: false },
-            // { icon: <Briefcase size={20} />, label: 'Portfolio' },
-            // { icon: <Search size={20} />, label: 'Market Analysis' },
-            // { icon: <Settings size={20} />, label: 'Settings' },
           ].map((item) => (
             <Link
               key={item.label}
@@ -89,7 +86,7 @@ export default function Home() {
                   placeholder="e.g. NVDA"
                 />
               </div>
-              <div className="flex-[3]">
+              <div className="flex-3">
                 <label className="text-text-muted text-[0.65rem] uppercase font-bold tracking-widest block mb-2">Research Query</label>
                 <input
                   type="text"
@@ -101,7 +98,7 @@ export default function Home() {
               </div>
               <div className="flex items-end gap-4">
                 <button
-                  className={`btn-primary h-[50px] px-8 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className={`btn-primary h-12.5 px-8 disabled:opacity-50 disabled:cursor-not-allowed`}
                   onClick={() => runWorkflow(ticker, query, tempWorkflow)}
                   disabled={state.status === 'running'}
                 >

@@ -5,9 +5,9 @@ import {
   getWorkflowRun,
   listWorkflowRuns,
   type WorkflowEventRecord,
-  type WorkflowRunRecord,
   type WorkflowRunSummary,
 } from "@/lib/workflow_history_api";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   Activity,
   CircleCheck,
@@ -19,7 +19,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 const stepOrder = ["retrieval", "fundamental", "news", "research", "investment"];
 
@@ -31,8 +31,6 @@ const statusStyles: Record<string, string> = {
   pending: "border-slate-400/30 text-slate-200 bg-slate-500/10",
   skipped: "border-slate-400/30 text-slate-200 bg-slate-500/10",
 };
-
-type LoadState = "idle" | "loading" | "error";
 
 function formatTimestamp(value?: string | null) {
   if (!value) return "-";
@@ -54,76 +52,52 @@ function StatusBadge({ status }: { status?: string | null }) {
 export default function WorkflowRunsPage() {
   const [limit, setLimit] = useState(20);
   const [tickerFilter, setTickerFilter] = useState("");
-  const [runs, setRuns] = useState<WorkflowRunSummary[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [listState, setListState] = useState<LoadState>("idle");
-  const [listError, setListError] = useState<string | null>(null);
-
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [runRecord, setRunRecord] = useState<WorkflowRunRecord | null>(null);
-  const [events, setEvents] = useState<WorkflowEventRecord[]>([]);
-  const [detailState, setDetailState] = useState<LoadState>("idle");
-  const [detailError, setDetailError] = useState<string | null>(null);
+  const normalizedTicker = tickerFilter.trim();
 
-  const loadRuns = useCallback(
-    async ({ cursor, append = false }: { cursor?: string | null; append?: boolean } = {}) => {
-      setListState("loading");
-      setListError(null);
-      try {
-        const response = await listWorkflowRuns({
-          limit,
-          cursor: cursor ?? null,
-          ticker: tickerFilter.trim() ? tickerFilter.trim() : null,
-        });
-        setNextCursor(response.next_cursor ?? null);
-        setRuns((prev) => (append ? [...prev, ...response.runs] : response.runs));
-        if (!append) {
-          setSelectedId(null);
-          setRunRecord(null);
-          setEvents([]);
-        }
-        setListState("idle");
-      } catch (error) {
-        setListState("error");
-        setListError(error instanceof Error ? error.message : "Unable to load workflow runs.");
-      }
-    },
-    [limit, tickerFilter]
-  );
+  const runsQuery = useInfiniteQuery({
+    queryKey: ["workflowRuns", limit, normalizedTicker],
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) =>
+      listWorkflowRuns({
+        limit,
+        cursor: pageParam ?? null,
+        ticker: normalizedTicker ? normalizedTicker : null,
+      }),
+    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
+  });
 
-  const loadRunDetails = useCallback(async (workflowId: string) => {
-    setDetailState("loading");
-    setDetailError(null);
-    try {
-      const [record, eventsResponse] = await Promise.all([
-        getWorkflowRun(workflowId),
-        getWorkflowEvents(workflowId),
-      ]);
-      setRunRecord(record);
-      setEvents(eventsResponse.events || []);
-      setDetailState("idle");
-    } catch (error) {
-      setDetailState("error");
-      setDetailError(error instanceof Error ? error.message : "Unable to load workflow details.");
+  const runs = useMemo<WorkflowRunSummary[]>(() => {
+    return runsQuery.data?.pages.flatMap((page) => page.runs) ?? [];
+  }, [runsQuery.data]);
+
+  const activeId = useMemo(() => {
+    if (selectedId && runs.some((run) => run.workflow_id === selectedId)) {
+      return selectedId;
     }
-  }, []);
+    return runs[0]?.workflow_id ?? null;
+  }, [runs, selectedId]);
 
-  useEffect(() => {
-    loadRuns({ cursor: null, append: false });
-  }, [loadRuns]);
+  const runQuery = useQuery({
+    queryKey: ["workflowRun", activeId],
+    queryFn: () => getWorkflowRun(activeId as string),
+    enabled: Boolean(activeId),
+  });
 
-  useEffect(() => {
-    if (selectedId || runs.length === 0) return;
-    const firstId = runs[0].workflow_id;
-    setSelectedId(firstId);
-    loadRunDetails(firstId);
-  }, [runs, selectedId, loadRunDetails]);
+  const eventsQuery = useQuery({
+    queryKey: ["workflowEvents", activeId],
+    queryFn: () => getWorkflowEvents(activeId as string),
+    enabled: Boolean(activeId),
+  });
 
-  const orderedEvents = useMemo(() => {
-    return [...events].sort((a, b) => {
+  const runRecord = runQuery.data ?? null;
+
+  const orderedEvents = useMemo<WorkflowEventRecord[]>(() => {
+    const items = eventsQuery.data?.events ?? [];
+    return [...items].sort((a, b) => {
       return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
     });
-  }, [events]);
+  }, [eventsQuery.data?.events]);
 
   const stepResults = useMemo(() => {
     if (!runRecord) return [];
@@ -132,6 +106,15 @@ export default function WorkflowRunsPage() {
       .filter((step) => results[step])
       .map((step) => ({ step, ...(results[step] || {}) }));
   }, [runRecord]);
+
+  const listErrorMessage = runsQuery.isError
+    ? (runsQuery.error instanceof Error ? runsQuery.error.message : "Unable to load workflow runs.")
+    : null;
+  const detailError = runQuery.error ?? eventsQuery.error ?? null;
+  const detailErrorMessage = detailError
+    ? (detailError instanceof Error ? detailError.message : "Unable to load workflow details.")
+    : null;
+  const detailLoading = runQuery.isLoading || eventsQuery.isLoading;
 
   return (
     <div className="flex min-h-screen">
@@ -186,7 +169,10 @@ export default function WorkflowRunsPage() {
                   <input
                     type="text"
                     value={tickerFilter}
-                    onChange={(e) => setTickerFilter(e.target.value.toUpperCase())}
+                    onChange={(e) => {
+                      setTickerFilter(e.target.value.toUpperCase());
+                      setSelectedId(null);
+                    }}
                     className="flex-1 bg-transparent text-white text-sm focus:outline-none"
                     placeholder="e.g. NVDA"
                   />
@@ -201,17 +187,23 @@ export default function WorkflowRunsPage() {
                   min={1}
                   max={100}
                   value={limit}
-                  onChange={(e) => setLimit(Number(e.target.value) || 1)}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value) || 1);
+                    setSelectedId(null);
+                  }}
                   className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-white text-sm focus:outline-none focus:border-accent-primary transition-all"
                 />
               </div>
               <div className="flex items-center gap-3">
                 <button
                   className="btn-primary flex items-center gap-2"
-                  onClick={() => loadRuns({ cursor: null, append: false })}
-                  disabled={listState === "loading"}
+                  onClick={() => {
+                    setSelectedId(null);
+                    runsQuery.refetch();
+                  }}
+                  disabled={runsQuery.isFetching}
                 >
-                  {listState === "loading" ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
+                  {runsQuery.isFetching ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
                   Refresh
                 </button>
               </div>
@@ -225,12 +217,14 @@ export default function WorkflowRunsPage() {
                   <h3 className="text-lg font-semibold">Runs</h3>
                   <p className="text-xs text-text-muted">{runs.length} loaded</p>
                 </div>
-                {listState === "loading" && <Loader2 size={18} className="animate-spin text-accent-secondary" />}
+                {runsQuery.isFetching && !runsQuery.isFetchingNextPage && (
+                  <Loader2 size={18} className="animate-spin text-accent-secondary" />
+                )}
               </div>
 
-              {listState === "error" && (
+              {listErrorMessage && (
                 <div className="glass-card p-3 text-sm text-red-200 border border-red-500/30 mb-4">
-                  {listError || "Unable to load workflow runs."}
+                  {listErrorMessage}
                 </div>
               )}
 
@@ -240,14 +234,13 @@ export default function WorkflowRunsPage() {
                     key={run.workflow_id}
                     type="button"
                     className={`glass-card w-full text-left p-4 transition-all ${
-                      selectedId === run.workflow_id
+                      activeId === run.workflow_id
                         ? "border border-accent-primary/60 bg-white/6"
                         : "border border-white/5"
                     }`}
                     onClick={() => {
-                      if (run.workflow_id === selectedId) return;
+                      if (run.workflow_id === activeId) return;
                       setSelectedId(run.workflow_id);
-                      loadRunDetails(run.workflow_id);
                     }}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -264,13 +257,13 @@ export default function WorkflowRunsPage() {
                 ))}
               </div>
 
-              {nextCursor && (
+              {runsQuery.hasNextPage && (
                 <button
                   className="glass-card w-full mt-4 py-2 text-xs uppercase tracking-widest text-text-muted"
-                  onClick={() => loadRuns({ cursor: nextCursor, append: true })}
-                  disabled={listState === "loading"}
+                  onClick={() => runsQuery.fetchNextPage()}
+                  disabled={runsQuery.isFetchingNextPage}
                 >
-                  Load more
+                  {runsQuery.isFetchingNextPage ? "Loading..." : "Load more"}
                 </button>
               )}
             </div>
@@ -280,19 +273,19 @@ export default function WorkflowRunsPage() {
                 <div>
                   <h3 className="text-lg font-semibold">Run Details</h3>
                   <p className="text-xs text-text-muted">
-                    {selectedId ? `Workflow ${selectedId}` : "Select a run to view full details."}
+                    {activeId ? `Workflow ${activeId}` : "Select a run to view full details."}
                   </p>
                 </div>
-                {detailState === "loading" && <Loader2 size={18} className="animate-spin text-accent-secondary" />}
+                {detailLoading && <Loader2 size={18} className="animate-spin text-accent-secondary" />}
               </div>
 
-              {detailState === "error" && (
+              {detailErrorMessage && (
                 <div className="glass-card p-3 text-sm text-red-200 border border-red-500/30 mb-4">
-                  {detailError || "Unable to load workflow details."}
+                  {detailErrorMessage}
                 </div>
               )}
 
-              {!selectedId && detailState !== "loading" && (
+              {!activeId && !detailLoading && (
                 <div className="glass-card p-6 text-sm text-text-muted">
                   Select a workflow run to inspect its steps and events.
                 </div>
@@ -342,11 +335,11 @@ export default function WorkflowRunsPage() {
                               </div>
                               <StatusBadge status={result.status} />
                             </div>
-                            {result.output && (
+                            {result.output != null ? (
                               <pre className="mt-3 text-xs text-text-muted bg-black/30 border border-white/5 rounded-sm p-3 max-h-40 overflow-auto">
                                 {JSON.stringify(result.output, null, 2)}
                               </pre>
-                            )}
+                            ) : null}
                           </div>
                         ))}
                       </div>
@@ -369,14 +362,14 @@ export default function WorkflowRunsPage() {
                               {event.step && <span className="text-text-muted">Step {event.step}</span>}
                               {event.status && <StatusBadge status={event.status} />}
                             </div>
-                            {event?.payload && (
+                            {event.payload != null ? (
                               <details className="mt-3 text-xs text-text-muted overflow-y-auto">
                                 <summary className="cursor-pointer">Payload</summary>
                                 <pre className="mt-2 text-xs text-text-muted bg-black/30 border border-white/5 rounded-sm p-3 max-h-40 overflow-auto">
-                                  {JSON.stringify(event?.payload, null, 2)}
+                                  {JSON.stringify(event.payload, null, 2)}
                                 </pre>
                               </details>
-                            )}
+                            ) : null}
                           </div>
                         ))}
                       </div>
