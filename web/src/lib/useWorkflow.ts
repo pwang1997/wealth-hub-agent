@@ -76,7 +76,7 @@ export function useWorkflow() {
     timersRef.current = {};
   }, []);
 
-  const runWorkflow = useCallback(async (ticker: string, query: string) => {
+  const runWorkflow = useCallback(async (ticker: string, query: string, tempWorkflow = false) => {
     stopAllTimers();
     setState({ ...initialState, status: 'running' });
 
@@ -86,7 +86,7 @@ export function useWorkflow() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ticker, query }),
+        body: JSON.stringify({ ticker, query, temp_workflow: tempWorkflow }),
       });
 
       if (!response.body) throw new Error('No response body');

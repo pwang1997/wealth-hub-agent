@@ -16,7 +16,9 @@ from src.agents.analyst.news.news_analyst_agent import NewsAnalystAgent
 from src.agents.analyst.research.research_analyst_agent import ResearchAnalystAgent
 from src.agents.manager.investment.investment_manager_agent import InvestmentManagerAgent
 from src.agents.retrieval.retrieval_agent import AnalystRetrievalAgent
+from src.orchestrator.run_history import WorkflowRunStore
 from src.orchestrator.types import (
+    LlmUsageRecord,
     StepName,
     StepStatus,
     StreamEvent,
@@ -44,12 +46,14 @@ CACHE_TTL_SECONDS = 86400  # 24 hours
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 cache_dir = os.path.join(base_dir, ".workflow_cache")
+run_history_dir = os.path.join(base_dir, ".workflow_history_cache")
 
 
 class WorkflowOrchestrator:
-    def __init__(self, cache_dir: str = cache_dir):
+    def __init__(self, cache_dir: str = cache_dir, run_history_dir: str = run_history_dir):
         self.cache = Cache(cache_dir)
         self.model_client = ModelClient()
+        self.run_store = WorkflowRunStore(run_history_dir)
 
         # Initialize agents
         self.retrieval_agent = AnalystRetrievalAgent()
@@ -128,6 +132,9 @@ class WorkflowOrchestrator:
             if indices != sorted(indices):
                 raise ValueError(f"Steps in only_steps must be in canonical order: {STEP_ORDER}")
 
+        if not request.temp_workflow:
+            self.run_store.start_run(workflow_id, request.ticker)
+
         # 1. Retrieval
         retrieval_res: WorkflowStepResult | None = None
         async for event in self._run_step_helper(
@@ -155,9 +162,11 @@ class WorkflowOrchestrator:
                 if retrieval_res and retrieval_res.status == StepStatus.FAILED
                 else WorkflowStatus.PARTIAL
             )
-            yield StreamEvent(
+            event = StreamEvent(
                 workflow_id=workflow_id, event="workflow_complete", status=final_status
             )
+            self._record_event(request, event)
+            yield event
             return
 
         # 2. Parallel Extraction (Fundamental & News)
@@ -167,11 +176,15 @@ class WorkflowOrchestrator:
         run_news = self._should_run_step(StepName.NEWS, request.only_steps, request.until_step)
 
         if run_fundamental:
-            yield StreamEvent(
+            event = StreamEvent(
                 workflow_id=workflow_id, event="step_start", step=StepName.FUNDAMENTAL
             )
+            self._record_event(request, event)
+            yield event
         if run_news:
-            yield StreamEvent(workflow_id=workflow_id, event="step_start", step=StepName.NEWS)
+            event = StreamEvent(workflow_id=workflow_id, event="step_start", step=StepName.NEWS)
+            self._record_event(request, event)
+            yield event
 
         fundamental_task = None
         news_task = None
@@ -215,36 +228,42 @@ class WorkflowOrchestrator:
                 else:
                     news_res = res
 
-                yield StreamEvent(
+                event = StreamEvent(
                     workflow_id=workflow_id,
                     event="step_complete",
                     step=res.step_name,
                     status=res.status,
                     payload=res,
                 )
+                self._record_event(request, event)
+                yield event
 
         # Handle skipped branches
         if run_fundamental is False:
             fundamental_res = WorkflowStepResult(
                 step_name=StepName.FUNDAMENTAL, status=StepStatus.SKIPPED
             )
-            yield StreamEvent(
+            event = StreamEvent(
                 workflow_id=workflow_id,
                 event="step_complete",
                 step=StepName.FUNDAMENTAL,
                 status=StepStatus.SKIPPED,
                 payload=fundamental_res,
             )
+            self._record_event(request, event)
+            yield event
 
         if run_news is False:
             news_res = WorkflowStepResult(step_name=StepName.NEWS, status=StepStatus.SKIPPED)
-            yield StreamEvent(
+            event = StreamEvent(
                 workflow_id=workflow_id,
                 event="step_complete",
                 step=StepName.NEWS,
                 status=StepStatus.SKIPPED,
                 payload=news_res,
             )
+            self._record_event(request, event)
+            yield event
 
         # 3. Research
         can_run_research = True
@@ -285,9 +304,11 @@ class WorkflowOrchestrator:
                 final_status = WorkflowStatus.FAILED
             else:
                 final_status = WorkflowStatus.PARTIAL
-            yield StreamEvent(
+            event = StreamEvent(
                 workflow_id=workflow_id, event="workflow_complete", status=final_status
             )
+            self._record_event(request, event)
+            yield event
             return
 
         # 4. Investment
@@ -314,7 +335,9 @@ class WorkflowOrchestrator:
         else:
             final_status = WorkflowStatus.PARTIAL
 
-        yield StreamEvent(workflow_id=workflow_id, event="workflow_complete", status=final_status)
+        event = StreamEvent(workflow_id=workflow_id, event="workflow_complete", status=final_status)
+        self._record_event(request, event)
+        yield event
 
     async def _run_step_helper(
         self,
@@ -329,29 +352,35 @@ class WorkflowOrchestrator:
         Helper to run a standard sequential step, emitting start/complete events.
         """
         if should_run and dependencies_ok and func:
-            yield StreamEvent(workflow_id=workflow_id, event="step_start", step=step_name)
+            event = StreamEvent(workflow_id=workflow_id, event="step_start", step=step_name)
+            self._record_event(request, event)
+            yield event
             # Give the event loop a chance to flush the start event to the client
             await asyncio.sleep(0.01)
 
             result = await self._execute_step(workflow_id, step_name, request, func)
-            yield StreamEvent(
+            event = StreamEvent(
                 workflow_id=workflow_id,
                 event="step_complete",
                 step=step_name,
                 status=result.status,
                 payload=result,
             )
+            self._record_event(request, event)
+            yield event
         else:
             status = StepStatus.SKIPPED
             warnings = ["Upstream dependencies failed"] if not dependencies_ok else []
             result = WorkflowStepResult(step_name=step_name, status=status, warnings=warnings)
-            yield StreamEvent(
+            event = StreamEvent(
                 workflow_id=workflow_id,
                 event="step_complete",
                 step=step_name,
                 status=result.status,
                 payload=result,
             )
+            self._record_event(request, event)
+            yield event
 
     async def _execute_step(
         self, workflow_id: str, step_name: StepName, request: WorkflowRequest, func: callable
@@ -369,9 +398,11 @@ class WorkflowOrchestrator:
         warnings: list[str] = []
         status: StepStatus = StepStatus.FAILED
 
+        usage: list[dict[str, int | str | None]] = []
         try:
             # We enforce a timeout
-            output = await asyncio.wait_for(func(), timeout=DEFAULT_TIMEOUT_SECONDS)
+            with self.model_client.capture_usage() as usage:
+                output = await asyncio.wait_for(func(), timeout=DEFAULT_TIMEOUT_SECONDS)
             status = StepStatus.COMPLETED
         except TimeoutError:
             logger.error(f"Step {step_name} timed out after {DEFAULT_TIMEOUT_SECONDS}s")
@@ -381,13 +412,28 @@ class WorkflowOrchestrator:
             warnings = [str(e)]
 
         duration = int((time.monotonic() - start_mono) * 1000)
+        usage_records = []
+        try:
+            usage_records = [LlmUsageRecord(**item) for item in usage] if usage else []
+        except Exception:
+            logger.exception("Failed to parse LLM usage records")
+
         result = WorkflowStepResult(
             step_name=step_name,
             status=status,
             output=output,
             warnings=warnings,
             duration_ms=duration,
+            llm_usage=usage_records,
         )
         if status == StepStatus.COMPLETED:
             self._cache_result(workflow_id, result)
         return result
+
+    def _record_event(self, request: WorkflowRequest, event: StreamEvent) -> None:
+        if request.temp_workflow:
+            return
+        try:
+            self.run_store.record_event(event)
+        except Exception:
+            logger.exception("Failed to persist workflow event")
