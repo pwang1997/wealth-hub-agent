@@ -1,7 +1,13 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  getWorkflowEvents,
+  getWorkflowRun,
+  listWorkflowRuns,
+  type WorkflowEventRecord,
+  type WorkflowRunRecord,
+  type WorkflowRunSummary,
+} from "@/lib/workflow_history_api";
 import {
   Activity,
   CircleCheck,
@@ -12,14 +18,8 @@ import {
   Search,
   TrendingUp,
 } from "lucide-react";
-import {
-  getWorkflowEvents,
-  getWorkflowRun,
-  listWorkflowRuns,
-  type WorkflowEventRecord,
-  type WorkflowRunRecord,
-  type WorkflowRunSummary,
-} from "@/lib/workflow_history_api";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const stepOrder = ["retrieval", "fundamental", "news", "research", "investment"];
 
@@ -369,11 +369,11 @@ export default function WorkflowRunsPage() {
                               {event.step && <span className="text-text-muted">Step {event.step}</span>}
                               {event.status && <StatusBadge status={event.status} />}
                             </div>
-                            {event.payload && (
-                              <details className="mt-3 text-xs text-text-muted">
+                            {event?.payload && (
+                              <details className="mt-3 text-xs text-text-muted overflow-y-auto">
                                 <summary className="cursor-pointer">Payload</summary>
                                 <pre className="mt-2 text-xs text-text-muted bg-black/30 border border-white/5 rounded-sm p-3 max-h-40 overflow-auto">
-                                  {JSON.stringify(event.payload, null, 2)}
+                                  {JSON.stringify(event?.payload, null, 2)}
                                 </pre>
                               </details>
                             )}
