@@ -3,7 +3,8 @@
 import InvestmentDecision from '@/components/Dashboard/InvestmentDecision';
 import ResultAccordion from '@/components/Dashboard/ResultAccordion';
 import { useWorkflow } from '@/lib/useWorkflow';
-import { LayoutDashboard, Loader2, TrendingUp } from 'lucide-react';
+import { History, LayoutDashboard, Loader2, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 
 export default function Home() {
@@ -25,18 +26,20 @@ export default function Home() {
 
         <nav className="px-4 flex-1">
           {[
-            { icon: <LayoutDashboard size={20} />, label: 'Dashboard', active: true },
+            { icon: <LayoutDashboard size={20} />, label: 'Dashboard', href: '/', active: true },
+            { icon: <History size={20} />, label: 'Workflow Runs', href: '/workflows', active: false },
             // { icon: <Briefcase size={20} />, label: 'Portfolio' },
             // { icon: <Search size={20} />, label: 'Market Analysis' },
             // { icon: <Settings size={20} />, label: 'Settings' },
-          ].map((item, idx) => (
-            <div
-              key={idx}
+          ].map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
               className={`glass-card p-3 mb-2 flex items-center gap-3 cursor-pointer ${item.active ? 'text-foreground' : 'text-text-muted'}`}
             >
               {item.icon}
               <span className="font-medium text-sm">{item.label}</span>
-            </div>
+            </Link>
           ))}
         </nav>
       </aside>
@@ -133,7 +136,10 @@ export default function Home() {
                 <ResultAccordion title="Data Retrieval Results" status={state.steps.retrieval}>
                   <div className="text-[0.9rem] text-text-muted leading-relaxed">
                     <p className="mb-3">Successfully retrieved and processed regulatory filings and news for <span className="text-foreground font-medium">{ticker}</span>.</p>
-                    <p><strong>Synthesized Context:</strong> {state.results.retrieval?.answer}</p>
+                    {
+                      state.results.retrieval?.answer &&
+                      <p><strong>Synthesized Context:</strong> {state.results.retrieval?.answer}</p>
+                    }
                   </div>
                 </ResultAccordion>
               )}
@@ -143,7 +149,7 @@ export default function Home() {
                   <div className="text-[0.9rem] text-text-muted leading-relaxed">
                     <div className="flex items-center gap-3 mb-4 bg-white/5 p-3 rounded-sm w-fit">
                       <span className="text-xs uppercase font-bold tracking-tighter">Health Score</span>
-                      <span className="text-2xl font-black text-accent-primary">{state.results.fundamental?.health_score}<span className="text-sm font-normal text-text-muted">/10</span></span>
+                      <span className="text-2xl font-black text-accent-primary">{state.results.fundamental?.health_score}<span className="text-sm font-normal text-text-muted">/100</span></span>
                     </div>
                     <p>{state.results.fundamental?.summary}</p>
                   </div>
