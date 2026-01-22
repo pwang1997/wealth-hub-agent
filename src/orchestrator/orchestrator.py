@@ -152,7 +152,6 @@ class WorkflowOrchestrator:
                 search_limit=request.search_limit,
             ),
         ):
-            self._record_event(request, event)
             yield event
             if event.event == "step_complete":
                 retrieval_res = event.payload  # type: ignore
@@ -295,7 +294,6 @@ class WorkflowOrchestrator:
                 news_output=news_res.output if news_res else None,
             ),
         ):
-            self._record_event(request, event)
             yield event
             if event.event == "step_complete":
                 research_res = event.payload  # type: ignore
@@ -324,7 +322,6 @@ class WorkflowOrchestrator:
             ),
             func=lambda: self.investment_agent.process(research_output=research_res.output),
         ):
-            self._record_event(request, event)
             yield event
             if event.event == "step_complete":
                 investment_res = event.payload  # type: ignore
