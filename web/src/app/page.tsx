@@ -9,6 +9,7 @@ import { useState } from 'react';
 export default function Home() {
   const [ticker, setTicker] = useState('NVDA');
   const [query, setQuery] = useState('Analyze the impact of recent AI chip regulations on long-term growth.');
+  const [tempWorkflow, setTempWorkflow] = useState(false);
   const { state, runWorkflow } = useWorkflow();
 
   return (
@@ -42,15 +43,33 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto px-12 py-8">
-        <div className="max-w-[1000px] mx-auto w-full">
+        <div className="max-w-250 mx-auto w-full">
           <header className="mb-12 flex justify-between items-center">
             <div>
               <h2 className="text-3xl font-semibold mb-2">AI Market Analyst</h2>
               <p className="text-text-muted text-sm">Enter a ticker and research objective to initiate an agent workflow.</p>
             </div>
-            <div className="glass-card px-4 py-2 flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-accent-primary shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-              <span className="text-[0.75rem] font-medium uppercase tracking-wider">System Operational</span>
+            <div className="flex flex-col items-end gap-3">
+              <div className="glass-card px-4 py-2 w-50 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-accent-primary shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                <span className="text-[0.75rem] font-medium uppercase tracking-wider">System Operational</span>
+              </div>
+              <label className="glass-card px-4 py-2 w-50 flex items-center justify-between gap-2">
+                <span>
+                  <span className="block text-[0.65rem] uppercase font-bold tracking-widest text-text-muted">Temporary</span>
+                </span>
+                <span className="relative inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={tempWorkflow}
+                    onChange={(e) => setTempWorkflow(e.target.checked)}
+                    disabled={state.status === 'running'}
+                  />
+                  <span className="w-11 h-6 rounded-full border border-white/20 bg-white/10 transition-colors peer-checked:bg-accent-primary peer-checked:border-accent-primary"></span>
+                  <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform peer-checked:translate-x-5"></span>
+                </span>
+              </label>
             </div>
           </header>
 
@@ -77,10 +96,10 @@ export default function Home() {
                   placeholder="What would you like the agents to analyze?"
                 />
               </div>
-              <div className="flex items-end">
+              <div className="flex items-end gap-4">
                 <button
                   className={`btn-primary h-[50px] px-8 disabled:opacity-50 disabled:cursor-not-allowed`}
-                  onClick={() => runWorkflow(ticker, query)}
+                  onClick={() => runWorkflow(ticker, query, tempWorkflow)}
                   disabled={state.status === 'running'}
                 >
                   {state.status === 'running' ? (
