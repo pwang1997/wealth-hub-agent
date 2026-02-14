@@ -25,7 +25,6 @@ RUN uv sync --frozen --no-install-project
 COPY src/ ./src/
 COPY clients/ ./clients/
 COPY .env ./.env
-COPY stock_config.yml ./
 RUN find /app -maxdepth 1 -type d -name ".*_cache" -prune -exec rm -rf {} +
 
 # Final sync
@@ -50,7 +49,7 @@ COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/src /app/src
 COPY --from=builder /app/clients /app/clients
 COPY --from=builder /app/.env /app/.env
-COPY --from=builder /app/stock_config.yml /app/stock_config.yml
+
 
 # Expose port
 EXPOSE 8000
